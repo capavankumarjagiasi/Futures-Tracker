@@ -243,7 +243,6 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   .card-count { font-size:24px; }
 }
 </style>
-<base target="_blank">
 </head>
 <body>
 <div class="header">
@@ -359,99 +358,104 @@ async function loadData() {
   badge.className = 'sync-badge pending';
   badge.textContent = '⏳ Loading...';
 
-  try {
-    let data = null;
-    let source = '';
-    let errors = [];
+  let data = null;
+  let source = '';
+  let errors = [];
 
-    // 1. Try localStorage cache first for instant display
-    const cached = localStorage.getItem('fo_snapshot_cache');
-    const cachedTime = localStorage.getItem('fo_snapshot_time');
-    if (cached) {
-      try {
-        data = JSON.parse(cached);
-        source = 'cache';
-        appData = processData(data);
-        render();
-      } catch(e) { 
-        console.log('Cache parse failed:', e.message);
-        data = null;
-        localStorage.removeItem('fo_snapshot_cache');
-        localStorage.removeItem('fo_snapshot_time');
+  // 1. Try localStorage cache first for instant display
+  const cached = localStorage.getItem('fo_snapshot_cache');
+  if (cached) {
+    try {
+      data = JSON.parse(cached);
+      source = 'cache';
+      appData = processData(data);
+      badge.className = 'sync-badge';
+      badge.textContent = '✅ Cached ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+      render();
+      console.log('Loaded from cache');
+    } catch(e) {
+      console.log('Cache parse failed:', e.message);
+      localStorage.removeItem('fo_snapshot_cache');
+      localStorage.removeItem('fo_snapshot_time');
+      data = null;
+    }
+  }
+
+  // 2. Fetch fresh data from primary source with timeout
+  const urlsToTry = [];
+  if (CONFIG.primarySource === 'github') {
+    urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+    urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+  } else {
+    urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+    urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+  }
+
+  for (const src of urlsToTry) {
+    try {
+      console.log('Trying:', src.name, src.url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      const resp = await fetch(src.url, { 
+        signal: controller.signal,
+        cache: 'no-store',
+        headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {}
+      });
+      clearTimeout(timeoutId);
+
+      if (resp.ok) {
+        let raw = await resp.json();
+        if (src.name === 'jsonbin' && raw.record) raw = raw.record;
+        data = raw;
+        source = 'live';
+        localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
+        localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+        console.log('Loaded from:', src.name);
+        break;
+      } else {
+        errors.push(`${src.name}: HTTP ${resp.status}`);
       }
-    }
-
-    // 2. Fetch fresh data from primary source
-    const urlsToTry = [];
-    if (CONFIG.primarySource === 'github') {
-      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
-      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
-    } else {
-      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
-      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
-    }
-
-    for (const src of urlsToTry) {
-      if (data && source === 'live') break; // Already got live data
-      try {
-        console.log('Trying:', src.name, src.url);
-        const resp = await fetch(src.url, { 
-          cache: 'no-store',
-          headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {} // Add jsonbin key if needed
-        });
-        if (resp.ok) {
-          let raw = await resp.json();
-          // jsonbin.io wraps data in { record: {...}, metadata: {...} }
-          if (src.name === 'jsonbin' && raw.record) raw = raw.record;
-          data = raw;
-          source = 'live';
-          localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
-          localStorage.setItem('fo_snapshot_time', new Date().toISOString());
-          console.log('Loaded from:', src.name);
-          break;
-        } else {
-          errors.push(`${src.name}: HTTP ${resp.status}`);
-        }
-      } catch(e) {
+    } catch(e) {
+      if (e.name === 'AbortError') {
+        errors.push(`${src.name}: Timeout`);
+      } else {
         errors.push(`${src.name}: ${e.message}`);
-        console.log(src.name, 'failed:', e.message);
       }
+      console.log(src.name, 'failed:', e.message);
     }
+  }
 
-    if (!data && !appData) {
-      throw new Error('No data available from any source. Errors: ' + errors.join('; '));
+  // 3. Process fresh data if fetched
+  if (data && source === 'live') {
+    try {
+      appData = processData(data);
+      badge.className = 'sync-badge';
+      const srcLabel = CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin';
+      badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+      render();
+    } catch(e) {
+      console.error('processData failed:', e.message);
+      errors.push('processData: ' + e.message);
+      // Keep existing appData if available
     }
+  }
 
-    if (data) {
-      try {
-        appData = processData(data);
-      } catch(e) {
-        console.error('processData failed:', e.message);
-        throw new Error('Data processing failed: ' + e.message);
-      }
-    }
-
-    badge.className = 'sync-badge';
-    const srcLabel = source === 'cache' ? 'Cached' : (CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin');
-    badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
-    render();
-
-  } catch(err) {
-    console.error('Load error:', err);
+  // 4. Final check - if still no data, show error
+  if (!appData) {
+    console.error('Load error:', errors.join('; '));
     badge.className = 'sync-badge error';
     badge.textContent = '❌ Failed';
-    if (!appData) {
-      document.getElementById('content').innerHTML = `
-        <div class="empty">
-          <div style="font-size:48px;margin-bottom:16px;">📂</div>
-          <p>Unable to load data.</p>
-          <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
-          <p style="color:#666;margin-top:8px;font-size:12px;">${err.message}</p>
-          <div style="margin-top:16px;">
-            <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
-          </div>
-        </div>`;
-    }
+    document.getElementById('content').innerHTML = `
+      <div class="empty">
+        <div style="font-size:48px;margin-bottom:16px;">📂</div>
+        <p>Unable to load data.</p>
+        <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
+        <p style="color:#666;margin-top:8px;font-size:12px;">${errors.join('; ')}</p>
+        <div style="margin-top:16px;">
+          <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
+        </div>
+      </div>`;
   }
 }
 
