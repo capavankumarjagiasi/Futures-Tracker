@@ -243,6 +243,7 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   .card-count { font-size:24px; }
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 <div class="header">
@@ -372,7 +373,12 @@ async function loadData() {
         source = 'cache';
         appData = processData(data);
         render();
-      } catch(e) { console.log('Cache parse failed'); }
+      } catch(e) { 
+        console.log('Cache parse failed:', e.message);
+        data = null;
+        localStorage.removeItem('fo_snapshot_cache');
+        localStorage.removeItem('fo_snapshot_time');
+      }
     }
 
     // 2. Fetch fresh data from primary source
@@ -417,7 +423,12 @@ async function loadData() {
     }
 
     if (data) {
-      appData = processData(data);
+      try {
+        appData = processData(data);
+      } catch(e) {
+        console.error('processData failed:', e.message);
+        throw new Error('Data processing failed: ' + e.message);
+      }
     }
 
     badge.className = 'sync-badge';
@@ -642,7 +653,7 @@ function renderDashboard(el) {
     html += `<div class="empty" style="padding:20px;">No securities banned</div>`;
   } else {
     html += `<div style="margin-bottom:20px;">`;
-    sortedBan.forEach(item => {
+    banList.forEach(item => {
       html += `
         <div class="ban-item" onclick="showDetail('${item.symbol}')" style="cursor:pointer;">
           <span class="ban-badge">🚫 BANNED</span>
@@ -979,7 +990,7 @@ function renderBan(el) {
         <span>Pattern</span>
       </div>
     `;
-    sortedBan.forEach(item => {
+    banList.forEach(item => {
       html += `
         <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
@@ -1141,6 +1152,9 @@ function applyDashFilters() {
 // TRACKER FILTERS
 // ============================================
 let trackerPattern = 'all';
+let trackerAlert = 'all';
+let trackerBasisCat = 'all';
+let trackerExpiry = 'all';
 let trackerAlert = 'all';
 let trackerBasisCat = 'all';
 let trackerExpiry = 'all';
