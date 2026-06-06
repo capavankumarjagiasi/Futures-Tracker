@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d6ebd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NSE F&O Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <button id="menuBtn" class="icon-btn">☰</button>
+    <h1>NSE F&O Tracker</h1>
+    <button id="syncBtn" class="icon-btn">🔄</button>
+  </header>
+
+  <div id="syncBar" class="sync-bar">
+    <span id="syncText">Tap 🔄 to load data</span>
+    <span id="syncDate"></span>
+  </div>
+
+  <nav id="mainNav" class="main-nav">
+    <button class="nav-btn active" data-screen="dashboard">📊 Dashboard</button>
+    <button class="nav-btn" data-screen="tracker">🔍 Tracker</button>
+    <button class="nav-btn" data-screen="oi">🔥 OI</button>
+    <button class="nav-btn" data-screen="basis">⚖️ Basis</button>
+    <button class="nav-btn" data-screen="ban">🚫 Ban</button>
+  </nav>
+
+  <main id="mainContent" class="main-content">
+    <section id="dashboardScreen" class="screen active">
+      <div class="dashboard-cards">
+        <div class="dash-card" onclick="showScreen('tracker')">
+          <div class="dash-icon">🔥</div>
+          <div class="dash-count" id="dashLB">-</div>
+          <div class="dash-label">Long Buildup</div>
+        </div>
+        <div class="dash-card" onclick="showScreen('tracker')">
+          <div class="dash-icon">🐻</div>
+          <div class="dash-count" id="dashSB">-</div>
+          <div class="dash-label">Short Buildup</div>
+        </div>
+        <div class="dash-card" onclick="showScreen('tracker')">
+          <div class="dash-icon">💧</div>
+          <div class="dash-count" id="dashLU">-</div>
+          <div class="dash-label">Long Unwinding</div>
+        </div>
+        <div class="dash-card" onclick="showScreen('tracker')">
+          <div class="dash-icon">⚡</div>
+          <div class="dash-count" id="dashSC">-</div>
+          <div class="dash-label">Short Covering</div>
+        </div>
+      </div>
+      <div class="section-title">Basis Summary</div>
+      <div class="basis-bar">
+        <div class="basis-seg deep-discount" id="barDD">-<small>DD</small></div>
+        <div class="basis-seg discount" id="barD">-<small>D</small></div>
+        <div class="basis-seg parity" id="barP">-<small>P</small></div>
+        <div class="basis-seg premium" id="barPm">-<small>Pm</small></div>
+        <div class="basis-seg deep-premium" id="barDP">-<small>DP</small></div>
+      </div>
+      <div class="section-title">Ban List</div>
+      <div class="ban-card" id="banCard">
+        <div>🚫 <span id="banCount">-</span> securities banned</div>
+        <div id="banOut" class="ban-out"></div>
+      </div>
+      <div class="section-title">Top Alerts</div>
+      <div id="topAlerts" class="alert-list"></div>
+    </section>
+
+    <section id="trackerScreen" class="screen">
+      <div class="filter-bar">
+        <input type="text" id="trackerSearch" placeholder="🔍 Search symbol..." class="search-input">
+        <select id="trackerSignal" class="filter-select">
+          <option value="all">All Signals</option>
+          <option value="LB">🔥 Long Buildup</option>
+          <option value="SB">🐻 Short Buildup</option>
+          <option value="LU">💧 Long Unwinding</option>
+          <option value="SC">⚡ Short Covering</option>
+        </select>
+        <select id="trackerType" class="filter-select">
+          <option value="all">All Types</option>
+          <option value="STK">Stocks</option>
+          <option value="IDX">Indices</option>
+        </select>
+      </div>
+      <div id="trackerList" class="card-list"></div>
+    </section>
+
+    <section id="oiScreen" class="screen">
+      <div class="oi-tabs">
+        <button class="oi-tab active" data-oi="gainers">🔥 Gainers</button>
+        <button class="oi-tab" data-oi="losers">❄️ Losers</button>
+      </div>
+      <div id="oiList" class="card-list"></div>
+    </section>
+
+    <section id="basisScreen" class="screen">
+      <div class="filter-bar">
+        <select id="basisFilter" class="filter-select full">
+          <option value="all">All</option>
+          <option value="deep_discount">🔴 Deep Discount</option>
+          <option value="discount">🟠 Discount</option>
+          <option value="parity">⚪ Parity</option>
+          <option value="premium">🔵 Premium</option>
+          <option value="deep_premium">🟢 Deep Premium</option>
+        </select>
+      </div>
+      <div id="basisList" class="card-list"></div>
+    </section>
+
+    <section id="banScreen" class="screen">
+      <div id="banList" class="card-list"></div>
+    </section>
+  </main>
+
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="back-btn" onclick="closeModal()">← Back</button>
+        <h2 id="modalSymbol">SYMBOL</h2>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="signInPrompt" class="signin-prompt">
+    <div class="signin-box">
+      <h2>☁ Google Drive Sign-In</h2>
+      <p>Sign in to sync your NSE F&O data from Google Drive.</p>
+      <button id="googleSignIn" class="btn-primary">Sign in with Google</button>
+      <button id="useDemo" class="btn-secondary">Use Demo Data</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/app.js"></script>
+</body>
+</html>
