@@ -41,8 +41,9 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 
 /* Tables */
 .table-wrap { background:#16213e; border-radius:12px; overflow:hidden; border:1px solid #2a2a4a; }
-.table-header { display:grid; padding:10px 12px; background:#0f3460; font-size:11px; color:#aaa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-.table-row { display:grid; padding:10px 12px; border-bottom:1px solid #2a2a4a; font-size:13px; align-items:center; }
+.table-wrap .table-row, .table-wrap .table-header { column-gap: 12px; }
+.table-header { display:grid; padding:10px 14px; background:#0f3460; font-size:11px; color:#aaa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; gap: 8px; }
+.table-row { display:grid; padding:10px 14px; border-bottom:1px solid #2a2a4a; font-size:13px; align-items:center; gap: 8px; }
 .table-row:last-child { border-bottom:none; }
 .table-row:hover { background:#1a1a3e; }
 .col-symbol { font-weight:600; color:#4fc3f7; }
@@ -254,6 +255,142 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 }
 .table-header span.sort-desc::after {
   border-top: 5px solid #4fc3f7;
+}
+
+
+/* Mobile responsive table scrolling */
+@media (max-width: 768px) {
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #2a2a4a;
+  }
+  .table-wrap {
+    min-width: max-content;
+    border: none;
+    border-radius: 0;
+  }
+  .table-header, .table-row {
+    min-width: max-content !important;
+    white-space: nowrap;
+  }
+  .table-header span, .table-row span {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .col-symbol {
+    position: sticky;
+    left: 0;
+    background: inherit;
+    z-index: 10;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.3);
+  }
+  .table-header .col-symbol {
+    background: #0f3460;
+  }
+  .table-row .col-symbol {
+    background: #16213e;
+  }
+  .table-row:hover .col-symbol {
+    background: #1a1a3e;
+  }
+  .card-count {
+    font-size: 22px;
+  }
+  .card-label {
+    font-size: 10px;
+  }
+  .nav-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .filter-pill, .filter-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  .refresh-bar {
+    flex-wrap: wrap;
+  }
+  .range-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .range-filter input[type="range"] {
+    width: 100%;
+  }
+  .modal-box {
+    max-width: 95vw;
+    margin: 10px;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .detail-value {
+    font-size: 14px;
+  }
+  .detail-label {
+    font-size: 10px;
+  }
+  .basis-bar {
+    font-size: 9px;
+    height: 28px;
+  }
+  .ban-item, .ban-out, .alert-item {
+    padding: 8px 10px;
+  }
+  .alert-tag {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .card {
+    padding: 10px;
+  }
+  .card-count {
+    font-size: 20px;
+  }
+  .header h1 {
+    font-size: 14px;
+  }
+  .sync-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .nav {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .nav-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  .content {
+    padding: 10px;
+  }
+  .table-header span, .table-row span {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .col-signal {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .modal-box {
+    border-radius: 12px;
+  }
 }
 
 </style>
@@ -544,7 +681,7 @@ function renderDashboard(el) {
     <!-- Filtered Results Table -->
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr; min-width: 600px;">
+        <div class="table-header" style="grid-template-columns: 90px 70px 80px 90px 90px 110px 1fr; min-width: 660px;">
           <span>Symbol</span><span>Signal</span><span>Basis%</span><span>LTP</span><span>OI</span><span>OI Chg</span><span>Alerts / Pattern</span>
         </div>
   `;
@@ -557,7 +694,7 @@ function renderDashboard(el) {
       const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
       const oiArrow = (item.oi_chg || 0) >= 0 ? '▲' : '▼';
       html += `
-        <div class="table-row" style="grid-template-columns: 80px 60px 50px 70px 80px 80px 100px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+        <div class="table-row" style="grid-template-columns: 90px 70px 55px 80px 90px 90px 110px 1fr; min-width: 720px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
           <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
@@ -640,6 +777,16 @@ function renderTracker(el) {
     </div>
     <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search symbol..." oninput="filterTracker()">
 
+    <!-- Signal Filter -->
+    <div class="filter-pills" id="signalFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Signal:</span>
+      <button class="filter-pill active" onclick="setTrackerSignal('all')">All</button>
+      <button class="filter-pill" onclick="setTrackerSignal('LB')">LB</button>
+      <button class="filter-pill" onclick="setTrackerSignal('SB')">SB</button>
+      <button class="filter-pill" onclick="setTrackerSignal('LU')">LU</button>
+      <button class="filter-pill" onclick="setTrackerSignal('SC')">SC</button>
+    </div>
+
     <!-- Pattern Filter -->
     <div class="filter-pills" id="patternFilter">
       <span style="font-size:12px;color:#888;margin-right:4px;">Pattern:</span>
@@ -675,7 +822,7 @@ function renderTracker(el) {
 
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px;">
+        <div class="table-header" style="grid-template-columns: 100px 70px 55px 80px 90px 90px 110px 90px 80px 1fr; min-width: 900px;">
           <span>Symbol</span><span>Signal</span><span>Conv★</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Pattern</span>
         </div>
         <div id="trackerRows">
@@ -685,7 +832,7 @@ function renderTracker(el) {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
     html += `
-          <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" data-basis="${item.basis_pct !== null ? item.basis_pct : 0}" data-basiscat="${item.basis_pct !== null ? (item.basis_pct < -1 ? 'dd' : item.basis_pct < 0 ? 'd' : item.basis_pct === 0 ? 'p' : item.basis_pct <= 1 ? 'pm' : 'dp') : 'p'}" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 1fr; min-width: 760px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" data-basis="${item.basis_pct !== null ? item.basis_pct : 0}" data-basiscat="${item.basis_pct !== null ? (item.basis_pct < -1 ? 'dd' : item.basis_pct < 0 ? 'd' : item.basis_pct === 0 ? 'p' : item.basis_pct <= 1 ? 'pm' : 'dp') : 'p'}" style="grid-template-columns: 100px 70px 55px 80px 90px 90px 110px 90px 80px 1fr; min-width: 900px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
             <span class="col-symbol">${item.symbol}</span>
             <span class="col-signal signal-${item.signal}">${item.signal}</span>
             <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
@@ -712,6 +859,16 @@ function renderOI(el) {
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
     </div>
 
+    <!-- Signal Filter -->
+    <div class="filter-pills" id="oiSignalFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Signal:</span>
+      <button class="filter-pill active" onclick="setOISignal('all')">All</button>
+      <button class="filter-pill" onclick="setOISignal('LB')">LB</button>
+      <button class="filter-pill" onclick="setOISignal('SB')">SB</button>
+      <button class="filter-pill" onclick="setOISignal('LU')">LU</button>
+      <button class="filter-pill" onclick="setOISignal('SC')">SC</button>
+    </div>
+
     <!-- Gainers/Losers Toggle -->
     <div class="filter-pills" id="oiToggleFilter">
       <span style="font-size:12px;color:#888;margin-right:4px;">Show:</span>
@@ -734,20 +891,21 @@ function renderOI(el) {
     <div class="section-title oi-section" data-section="gainers">🔥 OI Gainers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap" style="margin-bottom:24px;">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
-          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+        <div class="table-header" style="grid-template-columns: 100px 70px 55px 90px 110px 90px 70px 1fr; min-width: 800px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Signal</span><span>Alerts</span>
         </div>
   `;
 
   gainers.forEach(item => {
     html += `
-        <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+        <div class="table-row oi-row" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 100px 70px 55px 90px 110px 90px 70px 1fr; min-width: 800px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
           <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
           <span class="oi-up">▲ ${formatNumber(item.oi_chg)}</span>
           <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
           <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
         </div>
     `;
@@ -758,20 +916,21 @@ function renderOI(el) {
     <div class="section-title oi-section" data-section="losers">❄️ OI Losers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
-          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+        <div class="table-header" style="grid-template-columns: 100px 70px 55px 90px 110px 90px 70px 1fr; min-width: 800px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Signal</span><span>Alerts</span>
         </div>
   `;
 
   losers.forEach(item => {
     html += `
-        <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+        <div class="table-row oi-row" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 100px 70px 55px 90px 110px 90px 70px 1fr; min-width: 800px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
           <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
           <span class="oi-down">▼ ${formatNumber(Math.abs(item.oi_chg))}</span>
           <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
           <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
         </div>
     `;
@@ -787,6 +946,16 @@ function renderBasis(el) {
     <div class="refresh-bar">
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
       <span class="source-info">${appData.basisSummary.length} items</span>
+    </div>
+
+    <!-- Signal Filter -->
+    <div class="filter-pills" id="basisSignalFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Signal:</span>
+      <button class="filter-pill active" onclick="setBasisSignal('all')">All</button>
+      <button class="filter-pill" onclick="setBasisSignal('LB')">LB</button>
+      <button class="filter-pill" onclick="setBasisSignal('SB')">SB</button>
+      <button class="filter-pill" onclick="setBasisSignal('LU')">LU</button>
+      <button class="filter-pill" onclick="setBasisSignal('SC')">SC</button>
     </div>
 
     <!-- Basis Category Filter -->
@@ -821,8 +990,8 @@ function renderBasis(el) {
     <div class="section-title">⚖️ Basis Summary (Sorted by Basis %)</div>
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px;">
-          <span>Symbol</span><span>Basis%</span><span>Conv★</span><span>Basis</span><span>LTP</span><span>Spot</span><span>FV Diff</span><span>Signal / Alerts</span>
+        <div class="table-header" style="grid-template-columns: 100px 70px 80px 55px 90px 90px 110px 90px 70px 1fr; min-width: 850px;">
+          <span>Symbol</span><span>Signal</span><span>Basis%</span><span>Conv★</span><span>Basis</span><span>LTP</span><span>Spot</span><span>FV Diff</span><span>Signal</span><span>Alerts</span>
         </div>
   `;
 
@@ -838,14 +1007,16 @@ function renderBasis(el) {
     else cat = 'dp';
 
     html += `
-        <div class="table-row basis-row" data-cat="${cat}" data-conv="${item.conv_score !== null ? item.conv_score : 0}" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+        <div class="table-row basis-row" data-cat="${cat}" data-signal="${item.signal}" data-conv="${item.conv_score !== null ? item.conv_score : 0}" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 100px 70px 80px 55px 90px 90px 110px 90px 70px 1fr; min-width: 900px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
           <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
           <span>${item.basis !== null ? item.basis.toFixed(1) : '-'}</span>
           <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
           <span>${item.spot !== null ? item.spot.toFixed(1) : '-'}</span>
           <span class="${(item.fv_diff||0)>=0?'basis-pos':'basis-neg'}">${item.fv_diff !== null ? item.fv_diff.toFixed(1) : '-'}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
         </div>
     `;
@@ -856,12 +1027,32 @@ function renderBasis(el) {
   initTableSorting();
 }
 
+let banSignalFilter = 'all';
+
+function setBanSignal(signal) {
+  banSignalFilter = signal;
+  document.querySelectorAll('#banSignalFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (signal === 'all' ? 'All' : signal));
+  });
+  applyBanFilters();
+}
+
 function renderBan(el) {
   const banList = appData.banList;
   let html = `
     <div class="refresh-bar">
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
     </div>
+    <!-- Signal Filter -->
+    <div class="filter-pills" id="banSignalFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Signal:</span>
+      <button class="filter-pill active" onclick="setBanSignal('all')">All</button>
+      <button class="filter-pill" onclick="setBanSignal('LB')">LB</button>
+      <button class="filter-pill" onclick="setBanSignal('SB')">SB</button>
+      <button class="filter-pill" onclick="setBanSignal('LU')">LU</button>
+      <button class="filter-pill" onclick="setBanSignal('SC')">SC</button>
+    </div>
+
     <div class="section-title">🚫 Banned Securities</div>
   `;
 
@@ -870,18 +1061,20 @@ function renderBan(el) {
   } else {
     html += `<div class="table-scroll"><div class="table-wrap">`;
     html += `
-      <div class="table-header" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px;">
-        <span>Symbol</span><span>Status</span><span>OI</span><span>LTP</span><span>Basis%</span><span>Pattern</span>
+      <div class="table-header" style="grid-template-columns: 120px 70px 90px 110px 90px 90px 90px 70px 1fr; min-width: 800px;">
+        <span>Symbol</span><span>Signal</span><span>Status</span><span>OI</span><span>LTP</span><span>Basis%</span><span>Signal</span><span>Pattern</span>
       </div>
     `;
     banList.forEach(item => {
       html += `
-        <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+        <div class="table-row ban-row" data-signal="${item.signal}" style="grid-template-columns: 120px 70px 90px 110px 90px 90px 90px 70px 1fr; min-width: 860px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span style="color:#ef5350;font-weight:600;">🚫 BANNED</span>
           <span>${formatNumber(item.oi)}</span>
           <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
           <span class="${(item.basis_pct||0)>=0?'basis-pos':'basis-neg'}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-alerts">${item.pattern || '-'}</span>
         </div>
       `;
@@ -1025,24 +1218,34 @@ function getCellValue(row, colIndex) {
   // Get text content, remove arrows and formatting
   let text = cell.textContent || cell.innerText || '';
   text = text.replace(/[▲▼]/g, '').trim();
+
+  // For OI/Chg column (which has two lines), extract the first number (OI value)
+  // or if sorting by change, extract the second number
+  if (cell.classList.contains('col-oi') && text.includes('\n')) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    // Return first line (OI value) for sorting - the change value is secondary
+    text = lines[0] || text;
+  }
+
   return text;
 }
 
 function parseNumericValue(val) {
   if (val === null || val === undefined || val === '-' || val === '') return null;
 
-  // Remove currency symbols, commas, spaces
-  let clean = String(val).replace(/[₹, ]/g, '').replace(/\s/g, '');
+  // Remove currency symbols, commas, spaces, newlines
+  let clean = String(val).replace(/[₹,\n\r]/g, '').replace(/\s/g, '');
 
-  // Handle Cr/L/K suffixes
-  if (clean.endsWith('Cr')) {
-    return parseFloat(clean.replace('Cr', '')) * 10000000;
+  // Handle Cr/L/K suffixes (case insensitive)
+  const upper = clean.toUpperCase();
+  if (upper.endsWith('CR')) {
+    return parseFloat(clean.replace(/cr/i, '')) * 10000000;
   }
-  if (clean.endsWith('L')) {
-    return parseFloat(clean.replace('L', '')) * 100000;
+  if (upper.endsWith('L')) {
+    return parseFloat(clean.replace(/l/i, '')) * 100000;
   }
-  if (clean.endsWith('K')) {
-    return parseFloat(clean.replace('K', '')) * 1000;
+  if (upper.endsWith('K')) {
+    return parseFloat(clean.replace(/k/i, '')) * 1000;
   }
 
   // Handle percentage
@@ -1159,6 +1362,16 @@ function applyDashFilters() {
 // ============================================
 // TRACKER FILTERS
 // ============================================
+let trackerSignal = 'all';
+
+function setTrackerSignal(signal) {
+  trackerSignal = signal;
+  document.querySelectorAll('#signalFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (signal === 'all' ? 'All' : signal));
+  });
+  applyTrackerFilters();
+}
+
 let trackerPattern = 'all';
 let trackerAlert = 'all';
 let trackerBasisCat = 'all';
@@ -1200,6 +1413,7 @@ function applyTrackerFilters() {
     const basisCat = row.getAttribute('data-basiscat') || 'p';
 
     let show = true;
+    if (trackerSignal !== 'all' && signal !== trackerSignal) show = false;
     if (trackerPattern !== 'all' && signal !== trackerPattern) show = false;
     if (trackerAlert !== 'all' && !alerts.includes(trackerAlert.toLowerCase())) show = false;
     if (trackerBasisCat !== 'all' && basisCat !== trackerBasisCat) show = false;
@@ -1211,6 +1425,16 @@ function applyTrackerFilters() {
 // OI FILTERS
 // ============================================
 let oiAlertFilter = 'all';
+let oiSignalFilter = 'all';
+
+function setOISignal(signal) {
+  oiSignalFilter = signal;
+  document.querySelectorAll('#oiSignalFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (signal === 'all' ? 'All' : signal));
+  });
+  applyOIFilters();
+}
+
 let oiSectionFilter = 'all';
 
 function setOISection(section) {
@@ -1253,8 +1477,10 @@ function setOIAlert(alert) {
 
 function applyOIFilters() {
   document.querySelectorAll('.oi-row').forEach(row => {
+    const signal = row.getAttribute('data-signal');
     const alerts = row.getAttribute('data-alerts') || '';
     let show = true;
+    if (oiSignalFilter !== 'all' && signal !== oiSignalFilter) show = false;
     if (oiAlertFilter !== 'all' && !alerts.includes(oiAlertFilter.toLowerCase())) show = false;
     row.style.display = show ? '' : 'none';
   });
@@ -1275,6 +1501,16 @@ function applyOIFilters() {
 // ============================================
 // BASIS FILTERS
 // ============================================
+let basisSignalFilter = 'all';
+
+function setBasisSignal(signal) {
+  basisSignalFilter = signal;
+  document.querySelectorAll('#basisSignalFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (signal === 'all' ? 'All' : signal));
+  });
+  applyBasisFilters();
+}
+
 let basisCatFilter = 'all';
 let basisAlertFilter = 'all';
 
@@ -1310,9 +1546,11 @@ function filterBasisConv(val) {
 function applyBasisFilters() {
   document.querySelectorAll('.basis-row').forEach(row => {
     const cat = row.getAttribute('data-cat');
+    const signal = row.getAttribute('data-signal');
     const alerts = row.getAttribute('data-alerts') || '';
     const conv = parseInt(row.getAttribute('data-conv') || 0);
     let show = true;
+    if (basisSignalFilter !== 'all' && signal !== basisSignalFilter) show = false;
     if (basisCatFilter !== 'all' && cat !== basisCatFilter) show = false;
     if (basisAlertFilter !== 'all' && !alerts.includes(basisAlertFilter.toLowerCase())) show = false;
     if (basisConvMin > 0 && conv < basisConvMin) show = false;
