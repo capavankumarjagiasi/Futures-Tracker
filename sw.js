@@ -1,12 +1,12 @@
 const CACHE_NAME = 'fo-tracker-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -39,7 +39,7 @@ self.addEventListener('fetch', (e) => {
         });
       });
     }).catch(() => {
-      return caches.match('/index.html');
+      return caches.match('./index.html');
     })
   );
 });

@@ -2,7 +2,7 @@
 
 // Configuration
 const CONFIG = {
-  CLIENT_ID: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Replace with your Google Cloud Client ID
+  CLIENT_ID: '439037564886-peb4ctjhag5ice7627hvob6ikdsl796n.apps.googleusercontent.com',
   SCOPES: 'https://www.googleapis.com/auth/drive.file',
   SYNC_FOLDER: 'NSE_FO_Tracker_Sync',
   DEMO_DATA: false
@@ -69,6 +69,10 @@ function initGoogleSignIn() {
         localStorage.setItem('gdrive_token', accessToken);
         signInPrompt.classList.remove('active');
         syncFromDrive();
+      },
+      error_callback: (error) => {
+        console.error('Google Sign-In Error:', error);
+        alert('Sign-in failed: ' + (error.message || 'Unknown error'));
       }
     });
     client.requestAccessToken();
