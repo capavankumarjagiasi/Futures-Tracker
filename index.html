@@ -2,144 +2,645 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0d6ebd">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NSE F&O Tracker</title>
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192x192.png">
-<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTlNFIEYmTyBUcmFja2VyIiwic2hvcnRfbmFtZSI6IkZ1dHVyZXNUcmFja2VyIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMxYTFhMmUiLCJ0aGVtZV9jb2xvciI6IiMxYTFhMmUifQ==">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e0e0e0; min-height:100vh; }
+.header { background:#16213e; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #2a2a4a; }
+.header h1 { font-size:18px; color:#4fc3f7; font-weight:600; }
+.sync-badge { font-size:11px; color:#81c784; background:#1b5e20; padding:3px 10px; border-radius:12px; }
+.sync-badge.pending { color:#ffb74d; background:#5d4037; }
+.nav { display:flex; gap:8px; padding:12px 16px; overflow-x:auto; background:#16213e; border-bottom:1px solid #2a2a4a; }
+.nav-btn { padding:8px 16px; border:none; border-radius:20px; background:#2a2a4a; color:#b0b0c0; font-size:13px; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.nav-btn:hover { background:#3a3a5a; }
+.nav-btn.active { background:#4fc3f7; color:#1a1a2e; font-weight:600; }
+.content { padding:16px; max-width:1200px; margin:0 auto; }
+.section-title { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px; margin:20px 0 10px; font-weight:600; }
+
+/* Dashboard Cards */
+.cards-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
+@media(min-width:768px){ .cards-grid { grid-template-columns:repeat(4,1fr); } }
+.card { background:#16213e; border-radius:12px; padding:16px; text-align:center; border:1px solid #2a2a4a; transition:transform 0.2s; }
+.card:hover { transform:translateY(-2px); border-color:#4fc3f7; }
+.card-icon { font-size:28px; margin-bottom:6px; }
+.card-count { font-size:32px; font-weight:700; color:#fff; }
+.card-label { font-size:12px; color:#888; margin-top:4px; }
+.card.lb .card-count { color:#ff6b35; }
+.card.sb .card-count { color:#ef5350; }
+.card.lu .card-count { color:#42a5f5; }
+.card.sc .card-count { color:#66bb6a; }
+
+/* Filters */
+.filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.filter-btn { padding:6px 14px; border:1px solid #2a2a4a; border-radius:16px; background:#16213e; color:#b0b0c0; font-size:12px; cursor:pointer; transition:all 0.2s; }
+.filter-btn:hover { border-color:#4fc3f7; }
+.filter-btn.active { background:#4fc3f7; color:#1a1a2e; border-color:#4fc3f7; font-weight:600; }
+
+/* Tables */
+.table-wrap { background:#16213e; border-radius:12px; overflow:hidden; border:1px solid #2a2a4a; }
+.table-header { display:grid; padding:10px 12px; background:#0f3460; font-size:11px; color:#aaa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.table-row { display:grid; padding:10px 12px; border-bottom:1px solid #2a2a4a; font-size:13px; align-items:center; }
+.table-row:last-child { border-bottom:none; }
+.table-row:hover { background:#1a1a3e; }
+.col-symbol { font-weight:600; color:#4fc3f7; }
+.col-signal { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; text-align:center; }
+.signal-LB { background:#ff6b3520; color:#ff6b35; }
+.signal-SB { background:#ef535020; color:#ef5350; }
+.signal-LU { background:#42a5f520; color:#42a5f5; }
+.signal-SC { background:#66bb6a20; color:#66bb6a; }
+.col-basis { font-weight:600; }
+.basis-pos { color:#66bb6a; }
+.basis-neg { color:#ef5350; }
+.col-oi { text-align:right; }
+.col-oi .oi-chg { font-size:11px; }
+.oi-up { color:#66bb6a; }
+.oi-down { color:#ef5350; }
+.col-price { text-align:right; }
+.col-alerts { font-size:11px; }
+.alert-tag { display:inline-block; padding:2px 6px; border-radius:4px; margin:1px; font-size:10px; }
+.alert-hidisc { background:#ef535020; color:#ef5350; }
+.alert-squeeze { background:#ff980020; color:#ff9800; }
+.alert-bulltrap { background:#ff572220; color:#ff5722; }
+.alert-oispike { background:#ffeb3b20; color:#ffeb3b; }
+.alert-reshort { background:#9c27b020; color:#ce93d8; }
+.alert-recovery { background:#00bcd420; color:#00bcd4; }
+
+/* Basis Summary Bar */
+.basis-bar { display:flex; height:36px; border-radius:8px; overflow:hidden; margin-bottom:20px; font-size:11px; font-weight:600; }
+.basis-seg { display:flex; align-items:center; justify-content:center; color:#fff; min-width:60px; }
+.basis-seg.dd { background:#c62828; }
+.basis-seg.d { background:#ef6c00; }
+.basis-seg.p { background:#546e7a; }
+.basis-seg.pm { background:#0277bd; }
+.basis-seg.dp { background:#2e7d32; }
+
+/* Ban List */
+.ban-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
+.ban-badge { background:#c62828; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.ban-symbol { font-weight:600; color:#ef5350; }
+
+/* Alerts List */
+.alert-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
+.alert-icon { font-size:16px; }
+.alert-symbol { font-weight:600; color:#4fc3f7; min-width:80px; }
+.alert-text { font-size:13px; color:#ccc; }
+
+/* Empty State */
+.empty { text-align:center; padding:40px; color:#666; font-size:14px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#1a1a2e; }
+::-webkit-scrollbar-thumb { background:#4a4a6a; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#5a5a7a; }
+
+/* Loading */
+.loading { text-align:center; padding:60px; color:#888; }
+.spinner { width:40px; height:40px; border:3px solid #2a2a4a; border-top-color:#4fc3f7; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Search */
+.search-box { width:100%; padding:10px 14px; background:#16213e; border:1px solid #2a2a4a; border-radius:8px; color:#e0e0e0; font-size:14px; margin-bottom:16px; }
+.search-box:focus { outline:none; border-color:#4fc3f7; }
+.search-box::placeholder { color:#666; }
+</style>
 </head>
 <body>
-<div id="app">
-  <header class="app-header">
-    <button id="menuBtn" class="icon-btn">☰</button>
-    <h1>NSE F&O Tracker</h1>
-    <button id="syncBtn" class="icon-btn">🔄</button>
-  </header>
-
-  <div id="syncBar" class="sync-bar">
-    <span id="syncText">Tap 🔄 to load data</span>
-    <span id="syncDate"></span>
-  </div>
-
-  <nav id="mainNav" class="main-nav">
-    <button class="nav-btn active" data-screen="dashboard">📊 Dashboard</button>
-    <button class="nav-btn" data-screen="tracker">🔍 Tracker</button>
-    <button class="nav-btn" data-screen="oi">🔥 OI</button>
-    <button class="nav-btn" data-screen="basis">⚖️ Basis</button>
-    <button class="nav-btn" data-screen="ban">🚫 Ban</button>
-  </nav>
-
-  <main id="mainContent" class="main-content">
-    <section id="dashboardScreen" class="screen active">
-      <div class="dashboard-cards">
-        <div class="dash-card" onclick="showScreen('tracker')">
-          <div class="dash-icon">🔥</div>
-          <div class="dash-count" id="dashLB">-</div>
-          <div class="dash-label">Long Buildup</div>
-        </div>
-        <div class="dash-card" onclick="showScreen('tracker')">
-          <div class="dash-icon">🐻</div>
-          <div class="dash-count" id="dashSB">-</div>
-          <div class="dash-label">Short Buildup</div>
-        </div>
-        <div class="dash-card" onclick="showScreen('tracker')">
-          <div class="dash-icon">💧</div>
-          <div class="dash-count" id="dashLU">-</div>
-          <div class="dash-label">Long Unwinding</div>
-        </div>
-        <div class="dash-card" onclick="showScreen('tracker')">
-          <div class="dash-icon">⚡</div>
-          <div class="dash-count" id="dashSC">-</div>
-          <div class="dash-label">Short Covering</div>
-        </div>
-      </div>
-      <div class="section-title">Basis Summary</div>
-      <div class="basis-bar">
-        <div class="basis-seg deep-discount" id="barDD">-<small>DD</small></div>
-        <div class="basis-seg discount" id="barD">-<small>D</small></div>
-        <div class="basis-seg parity" id="barP">-<small>P</small></div>
-        <div class="basis-seg premium" id="barPm">-<small>Pm</small></div>
-        <div class="basis-seg deep-premium" id="barDP">-<small>DP</small></div>
-      </div>
-      <div class="section-title">Ban List</div>
-      <div class="ban-card" id="banCard">
-        <div>🚫 <span id="banCount">-</span> securities banned</div>
-        <div id="banOut" class="ban-out"></div>
-      </div>
-      <div class="section-title">Top Alerts</div>
-      <div id="topAlerts" class="alert-list"></div>
-    </section>
-
-    <section id="trackerScreen" class="screen">
-      <div class="filter-bar">
-        <input type="text" id="trackerSearch" placeholder="🔍 Search symbol..." class="search-input">
-        <select id="trackerSignal" class="filter-select">
-          <option value="all">All Signals</option>
-          <option value="LB">🔥 Long Buildup</option>
-          <option value="SB">🐻 Short Buildup</option>
-          <option value="LU">💧 Long Unwinding</option>
-          <option value="SC">⚡ Short Covering</option>
-        </select>
-        <select id="trackerType" class="filter-select">
-          <option value="all">All Types</option>
-          <option value="STK">Stocks</option>
-          <option value="IDX">Indices</option>
-        </select>
-      </div>
-      <div id="trackerList" class="card-list"></div>
-    </section>
-
-    <section id="oiScreen" class="screen">
-      <div class="oi-tabs">
-        <button class="oi-tab active" data-oi="gainers">🔥 Gainers</button>
-        <button class="oi-tab" data-oi="losers">❄️ Losers</button>
-      </div>
-      <div id="oiList" class="card-list"></div>
-    </section>
-
-    <section id="basisScreen" class="screen">
-      <div class="filter-bar">
-        <select id="basisFilter" class="filter-select full">
-          <option value="all">All</option>
-          <option value="deep_discount">🔴 Deep Discount</option>
-          <option value="discount">🟠 Discount</option>
-          <option value="parity">⚪ Parity</option>
-          <option value="premium">🔵 Premium</option>
-          <option value="deep_premium">🟢 Deep Premium</option>
-        </select>
-      </div>
-      <div id="basisList" class="card-list"></div>
-    </section>
-
-    <section id="banScreen" class="screen">
-      <div id="banList" class="card-list"></div>
-    </section>
-  </main>
-
-  <div id="detailModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button class="back-btn" onclick="closeModal()">← Back</button>
-        <h2 id="modalSymbol">SYMBOL</h2>
-      </div>
-      <div id="modalBody" class="modal-body"></div>
-    </div>
-  </div>
-
-  <div id="signInPrompt" class="signin-prompt">
-    <div class="signin-box">
-      <h2>☁ Google Drive Sign-In</h2>
-      <p>Sign in to sync your NSE F&O data from Google Drive.</p>
-      <button id="googleSignIn" class="btn-primary">Sign in with Google</button>
-      <button id="useDemo" class="btn-secondary">Use Demo Data</button>
-    </div>
-  </div>
+<div class="header">
+  <h1>📊 NSE F&O Tracker</h1>
+  <span class="sync-badge" id="syncBadge">⏳ Loading...</span>
+</div>
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')">📈 Dashboard</button>
+  <button class="nav-btn" onclick="showTab('tracker')">🔍 Tracker</button>
+  <button class="nav-btn" onclick="showTab('oi')">🔥 OI Movers</button>
+  <button class="nav-btn" onclick="showTab('basis')">⚖️ Basis</button>
+  <button class="nav-btn" onclick="showTab('ban')">🚫 Ban List</button>
+</div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>Loading data...</div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js"></script>
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const CONFIG = {
+  // Primary: Load from uploaded JSON file (same directory)
+  jsonUrl: 'fo_snapshot.json',
+  // Fallback: Google Drive direct link (replace FILE_ID with actual ID)
+  fallbackUrl: null,
+  // Date for display
+  dateFmt: '05-06-2026'
+};
+
+// ============================================
+// STATE
+// ============================================
+let appData = null;
+let currentTab = 'dashboard';
+let dashboardFilter = 'all';
+
+// ============================================
+// DATA LOADING
+// ============================================
+async function loadData() {
+  const badge = document.getElementById('syncBadge');
+  badge.className = 'sync-badge pending';
+  badge.textContent = '⏳ Loading...';
+
+  try {
+    // Try multiple sources
+    let data = null;
+    let source = '';
+
+    // 1. Try localStorage cache first for instant display
+    const cached = localStorage.getItem('fo_snapshot_cache');
+    const cachedTime = localStorage.getItem('fo_snapshot_time');
+    if (cached) {
+      try {
+        data = JSON.parse(cached);
+        source = 'cache';
+        // Show cached data immediately while fetching fresh
+        appData = processData(data);
+        render();
+      } catch(e) { console.log('Cache parse failed'); }
+    }
+
+    // 2. Try fetching fresh JSON
+    try {
+      const resp = await fetch(CONFIG.jsonUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (resp.ok) {
+        data = await resp.json();
+        source = 'live';
+        localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
+        localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+      }
+    } catch(e) {
+      console.log('Primary fetch failed:', e);
+      // 3. Try fallback URL if configured
+      if (CONFIG.fallbackUrl) {
+        try {
+          const resp2 = await fetch(CONFIG.fallbackUrl);
+          if (resp2.ok) {
+            data = await resp2.json();
+            source = 'fallback';
+          }
+        } catch(e2) { console.log('Fallback failed:', e2); }
+      }
+    }
+
+    if (!data && !appData) {
+      throw new Error('No data available');
+    }
+
+    if (data) {
+      appData = processData(data);
+    }
+
+    badge.className = 'sync-badge';
+    badge.textContent = '✅ Synced ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+    render();
+
+  } catch(err) {
+    console.error('Load error:', err);
+    badge.className = 'sync-badge pending';
+    badge.textContent = '❌ Failed';
+    if (!appData) {
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <div style="font-size:48px;margin-bottom:16px;">📂</div>
+          <p>Unable to load data.</p>
+          <p style="color:#666;margin-top:8px;">Please ensure <code>fo_snapshot.json</code> is in the same directory.</p>
+          <p style="color:#666;margin-top:8px;font-size:12px;">${err.message}</p>
+        </div>`;
+    }
+  }
+}
+
+// ============================================
+// DATA PROCESSING
+// ============================================
+function processData(raw) {
+  const tracker = raw.futures_tracker || [];
+
+  // Compute signal counts from futures_tracker (NOT signal_breakdown which is limited)
+  const signalCounts = { LB:0, SB:0, LU:0, SC:0 };
+  const signalItems = { LB:[], SB:[], LU:[], SC:[] };
+
+  tracker.forEach(item => {
+    const sig = item.signal;
+    if (signalCounts.hasOwnProperty(sig)) {
+      signalCounts[sig]++;
+      signalItems[sig].push(item);
+    }
+  });
+
+  // Categorize basis
+  const basisCats = { dd:[], d:[], p:[], pm:[], dp:[] };
+  tracker.forEach(item => {
+    const bp = item.basis_pct;
+    if (bp === null || bp === undefined) return;
+    if (bp < -1) basisCats.dd.push(item);
+    else if (bp < 0) basisCats.d.push(item);
+    else if (bp === 0) basisCats.p.push(item);
+    else if (bp <= 1) basisCats.pm.push(item);
+    else basisCats.dp.push(item);
+  });
+
+  // Extract alerts
+  const alerts = [];
+  tracker.forEach(item => {
+    if (item.alerts && item.alerts.trim()) {
+      const alertList = item.alerts.split('|').map(a => a.trim()).filter(Boolean);
+      alertList.forEach(a => alerts.push({ symbol: item.symbol, alert: a, signal: item.signal }));
+    }
+  });
+  // Sort: Hi Disc first, then by symbol
+  const alertPriority = { '🔻Hi Disc': 0, '⚡OI Spike': 1, '🚀Squeeze': 2, '⚠Bull Trap': 3, '🔄Rev↓': 4, '🔄Rev↑': 5 };
+  alerts.sort((a, b) => {
+    const pa = alertPriority[a.alert] ?? 99;
+    const pb = alertPriority[b.alert] ?? 99;
+    return pa - pb || a.symbol.localeCompare(b.symbol);
+  });
+
+  // Ban list
+  const banList = tracker.filter(i => i.ban_status === 'banned');
+
+  return {
+    meta: raw.meta,
+    tracker,
+    signalCounts,
+    signalItems,
+    basisCats,
+    basisSummary: raw.basis_summary || [],
+    oiMovers: raw.oi_movers || { gainers:[], losers:[] },
+    alerts,
+    banList
+  };
+}
+
+// ============================================
+// RENDERING
+// ============================================
+function render() {
+  if (!appData) return;
+  const el = document.getElementById('content');
+
+  switch(currentTab) {
+    case 'dashboard': renderDashboard(el); break;
+    case 'tracker': renderTracker(el); break;
+    case 'oi': renderOI(el); break;
+    case 'basis': renderBasis(el); break;
+    case 'ban': renderBan(el); break;
+  }
+}
+
+function renderDashboard(el) {
+  const { signalCounts, basisCats, alerts, banList } = appData;
+  const total = signalCounts.LB + signalCounts.SB + signalCounts.LU + signalCounts.SC;
+
+  // Filter items for display
+  let displayItems = [];
+  if (dashboardFilter === 'all') {
+    displayItems = [...appData.signalItems.LB, ...appData.signalItems.SB, 
+                    ...appData.signalItems.LU, ...appData.signalItems.SC];
+  } else {
+    displayItems = appData.signalItems[dashboardFilter] || [];
+  }
+  // Sort by conv_score desc, then OI change
+  displayItems.sort((a, b) => (b.conv_score - a.conv_score) || (b.oi_chg - a.oi_chg));
+
+  const basisTotal = basisCats.dd.length + basisCats.d.length + basisCats.p.length + basisCats.pm.length + basisCats.dp.length;
+
+  let html = `
+    <!-- Summary Cards -->
+    <div class="cards-grid">
+      <div class="card lb" onclick="setFilter('LB')" style="cursor:pointer;">
+        <div class="card-icon">🔥</div>
+        <div class="card-count">${signalCounts.LB}</div>
+        <div class="card-label">Long Buildup</div>
+      </div>
+      <div class="card sb" onclick="setFilter('SB')" style="cursor:pointer;">
+        <div class="card-icon">🐻</div>
+        <div class="card-count">${signalCounts.SB}</div>
+        <div class="card-label">Short Buildup</div>
+      </div>
+      <div class="card lu" onclick="setFilter('LU')" style="cursor:pointer;">
+        <div class="card-icon">💧</div>
+        <div class="card-count">${signalCounts.LU}</div>
+        <div class="card-label">Long Unwinding</div>
+      </div>
+      <div class="card sc" onclick="setFilter('SC')" style="cursor:pointer;">
+        <div class="card-icon">⚡</div>
+        <div class="card-count">${signalCounts.SC}</div>
+        <div class="card-label">Short Covering</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filter-btn ${dashboardFilter==='all'?'active':''}" onclick="setFilter('all')">All (${total})</button>
+      <button class="filter-btn ${dashboardFilter==='LB'?'active':''}" onclick="setFilter('LB')">LB (${signalCounts.LB})</button>
+      <button class="filter-btn ${dashboardFilter==='SB'?'active':''}" onclick="setFilter('SB')">SB (${signalCounts.SB})</button>
+      <button class="filter-btn ${dashboardFilter==='LU'?'active':''}" onclick="setFilter('LU')">LU (${signalCounts.LU})</button>
+      <button class="filter-btn ${dashboardFilter==='SC'?'active':''}" onclick="setFilter('SC')">SC (${signalCounts.SC})</button>
+    </div>
+
+    <!-- Filtered Results Table -->
+    <div class="table-wrap">
+      <div class="table-header" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr;">
+        <span>Symbol</span><span>Signal</span><span>Basis%</span><span>LTP</span><span>OI</span><span>OI Chg</span><span>Alerts / Pattern</span>
+      </div>
+  `;
+
+  if (displayItems.length === 0) {
+    html += `<div class="empty">No items match the selected filter</div>`;
+  } else {
+    displayItems.forEach(item => {
+      const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+      const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
+      const oiArrow = (item.oi_chg || 0) >= 0 ? '▲' : '▼';
+      html += `
+        <div class="table-row" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr;">
+          <span class="col-symbol">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
+          <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span class="col-price">${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+          <span class="col-oi">${formatNumber(item.oi)}</span>
+          <span class="col-oi ${oiClass}">${oiArrow} ${formatNumber(Math.abs(item.oi_chg))}</span>
+          <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+        </div>
+      `;
+    });
+  }
+  html += `</div>`;
+
+  // Basis Summary Bar
+  html += `
+    <div class="section-title">Basis Summary</div>
+    <div class="basis-bar">
+      <div class="basis-seg dd" style="width:${basisTotal?(basisCats.dd.length/basisTotal*100):0}%">${basisCats.dd.length>0?basisCats.dd.length+' DD':''}</div>
+      <div class="basis-seg d" style="width:${basisTotal?(basisCats.d.length/basisTotal*100):0}%">${basisCats.d.length>0?basisCats.d.length+' D':''}</div>
+      <div class="basis-seg p" style="width:${basisTotal?(basisCats.p.length/basisTotal*100):0}%">${basisCats.p.length>0?basisCats.p.length+' P':''}</div>
+      <div class="basis-seg pm" style="width:${basisTotal?(basisCats.pm.length/basisTotal*100):0}%">${basisCats.pm.length>0?basisCats.pm.length+' Pm':''}</div>
+      <div class="basis-seg dp" style="width:${basisTotal?(basisCats.dp.length/basisTotal*100):0}%">${basisCats.dp.length>0?basisCats.dp.length+' DP':''}</div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:11px;color:#888;margin-bottom:20px;flex-wrap:wrap;">
+      <span><span style="color:#c62828;">■</span> Deep Discount (&lt;-1%)</span>
+      <span><span style="color:#ef6c00;">■</span> Discount (-1% to 0)</span>
+      <span><span style="color:#546e7a;">■</span> Par (0)</span>
+      <span><span style="color:#0277bd;">■</span> Premium (0 to +1%)</span>
+      <span><span style="color:#2e7d32;">■</span> Deep Premium (&gt;+1%)</span>
+    </div>
+  `;
+
+  // Ban List
+  html += `<div class="section-title">Ban List</div>`;
+  if (banList.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No securities banned</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    banList.forEach(item => {
+      html += `
+        <div class="ban-item">
+          <span class="ban-badge">🚫 BANNED</span>
+          <span class="ban-symbol">${item.symbol}</span>
+          <span style="color:#888;font-size:12px;">OI: ${formatNumber(item.oi)} | LTP: ${item.ltp}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  // Top Alerts
+  html += `<div class="section-title">Top Alerts</div>`;
+  if (alerts.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No alerts</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    alerts.slice(0, 15).forEach(a => {
+      const alertClass = getAlertClass(a.alert);
+      html += `
+        <div class="alert-item">
+          <span class="alert-symbol">${a.symbol}</span>
+          <span class="alert-tag ${alertClass}">${a.alert}</span>
+          <span style="color:#666;font-size:11px;">${a.signal}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderTracker(el) {
+  let html = `
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search symbol..." oninput="filterTracker()">
+    <div class="table-wrap">
+      <div class="table-header" style="grid-template-columns: 90px 60px 70px 80px 80px 100px 120px 1fr;">
+        <span>Symbol</span><span>Signal</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Pattern</span>
+      </div>
+      <div id="trackerRows">
+  `;
+
+  appData.tracker.forEach(item => {
+    const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+    const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
+    html += `
+      <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" style="grid-template-columns: 90px 60px 70px 80px 80px 100px 120px 1fr;">
+        <span class="col-symbol">${item.symbol}</span>
+        <span class="col-signal signal-${item.signal}">${item.signal}</span>
+        <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+        <span>${item.spot !== null ? item.spot.toFixed(1) : '-'}</span>
+        <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+        <span class="col-oi ${oiClass}">${formatNumber(item.oi)}<br><span class="oi-chg">${item.oi_chg>=0?'▲':'▼'} ${formatNumber(Math.abs(item.oi_chg))}</span></span>
+        <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+        <span class="col-alerts">${item.pattern || '-'}</span>
+      </div>
+    `;
+  });
+
+  html += `</div></div>`;
+  el.innerHTML = html;
+}
+
+function renderOI(el) {
+  const { gainers, losers } = appData.oiMovers;
+
+  let html = `
+    <div class="section-title">🔥 OI Gainers (Top 25)</div>
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-header" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+        <span>Symbol</span><span>Signal</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+      </div>
+  `;
+
+  gainers.forEach(item => {
+    html += `
+      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+        <span class="col-symbol">${item.symbol}</span>
+        <span class="col-signal signal-${item.signal}">${item.signal}</span>
+        <span class="oi-up">▲ ${formatNumber(item.oi_chg)}</span>
+        <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+        <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+        <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  html += `
+    <div class="section-title">❄️ OI Losers (Top 25)</div>
+    <div class="table-wrap">
+      <div class="table-header" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+        <span>Symbol</span><span>Signal</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+      </div>
+  `;
+
+  losers.forEach(item => {
+    html += `
+      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+        <span class="col-symbol">${item.symbol}</span>
+        <span class="col-signal signal-${item.signal}">${item.signal}</span>
+        <span class="oi-down">▼ ${formatNumber(Math.abs(item.oi_chg))}</span>
+        <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+        <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+        <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+function renderBasis(el) {
+  let html = `
+    <div class="section-title">⚖️ Basis Summary (Sorted by Basis %)</div>
+    <div class="table-wrap">
+      <div class="table-header" style="grid-template-columns: 90px 70px 80px 80px 100px 80px 1fr;">
+        <span>Symbol</span><span>Basis%</span><span>Basis</span><span>LTP</span><span>Spot</span><span>FV Diff</span><span>Signal / Alerts</span>
+      </div>
+  `;
+
+  appData.basisSummary.forEach(item => {
+    const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+    html += `
+      <div class="table-row" style="grid-template-columns: 90px 70px 80px 80px 100px 80px 1fr;">
+        <span class="col-symbol">${item.symbol}</span>
+        <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+        <span>${item.basis !== null ? item.basis.toFixed(1) : '-'}</span>
+        <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+        <span>${item.spot !== null ? item.spot.toFixed(1) : '-'}</span>
+        <span class="${(item.fv_diff||0)>=0?'basis-pos':'basis-neg'}">${item.fv_diff !== null ? item.fv_diff.toFixed(1) : '-'}</span>
+        <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+function renderBan(el) {
+  const banList = appData.banList;
+  let html = `<div class="section-title">🚫 Banned Securities</div>`;
+
+  if (banList.length === 0) {
+    html += `<div class="empty" style="padding:40px;">No securities currently banned</div>`;
+  } else {
+    html += `<div class="table-wrap">`;
+    html += `
+      <div class="table-header" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr;">
+        <span>Symbol</span><span>Status</span><span>OI</span><span>LTP</span><span>Basis%</span><span>Pattern</span>
+      </div>
+    `;
+    banList.forEach(item => {
+      html += `
+        <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr;">
+          <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
+          <span style="color:#ef5350;font-weight:600;">🚫 BANNED</span>
+          <span>${formatNumber(item.oi)}</span>
+          <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+          <span class="${(item.basis_pct||0)>=0?'basis-pos':'basis-neg'}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span class="col-alerts">${item.pattern || '-'}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function formatNumber(n) {
+  if (n === null || n === undefined) return '-';
+  if (Math.abs(n) >= 100000) return (n/100000).toFixed(1) + 'L';
+  if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function renderAlerts(alerts, pattern) {
+  let html = '';
+  if (pattern && pattern !== '↓→▼→▲' && pattern !== '↑→▼→↓' && pattern !== '▼→▲→▼' && 
+      pattern !== 'SC×2' && pattern !== 'LB×2' && pattern !== 'LU×2' && pattern !== 'SB×2') {
+    html += `<span style="color:#888;margin-right:4px;">${pattern}</span>`;
+  }
+  if (alerts && alerts.trim()) {
+    const list = alerts.split('|').map(a => a.trim()).filter(Boolean);
+    list.forEach(a => {
+      html += `<span class="alert-tag ${getAlertClass(a)}">${a}</span>`;
+    });
+  }
+  return html || '-';
+}
+
+function getAlertClass(alert) {
+  if (alert.includes('Hi Disc')) return 'alert-hidisc';
+  if (alert.includes('Squeeze')) return 'alert-squeeze';
+  if (alert.includes('Bull Trap')) return 'alert-bulltrap';
+  if (alert.includes('OI Spike')) return 'alert-oispike';
+  if (alert.includes('Rev↓') || alert.includes('Re-Short')) return 'alert-reshort';
+  if (alert.includes('Rev↑') || alert.includes('Recovery')) return 'alert-recovery';
+  return 'alert-tag';
+}
+
+// ============================================
+// INTERACTION
+// ============================================
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+function setFilter(filter) {
+  dashboardFilter = filter;
+  renderDashboard(document.getElementById('content'));
+}
+
+function filterTracker() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  document.querySelectorAll('.tracker-row').forEach(row => {
+    const sym = row.getAttribute('data-symbol');
+    row.style.display = sym.includes(q) ? '' : 'none';
+  });
+}
+
+// ============================================
+// INIT
+// ============================================
+loadData();
+// Auto-refresh every 5 minutes
+setInterval(loadData, 300000);
+</script>
 </body>
 </html>
