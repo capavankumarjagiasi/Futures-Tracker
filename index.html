@@ -128,10 +128,8 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 // CONFIGURATION
 // ============================================
 const CONFIG = {
-  // Primary: Load from uploaded JSON file (same directory)
+  // Primary: Load from JSON file (same directory or GitHub raw URL)
   jsonUrl: 'fo_snapshot.json',
-  // Fallback: Google Drive direct link (replace FILE_ID with actual ID)
-  fallbackUrl: null,
   // Date for display
   dateFmt: '05-06-2026'
 };
@@ -180,16 +178,6 @@ async function loadData() {
       }
     } catch(e) {
       console.log('Primary fetch failed:', e);
-      // 3. Try fallback URL if configured
-      if (CONFIG.fallbackUrl) {
-        try {
-          const resp2 = await fetch(CONFIG.fallbackUrl);
-          if (resp2.ok) {
-            data = await resp2.json();
-            source = 'fallback';
-          }
-        } catch(e2) { console.log('Fallback failed:', e2); }
-      }
     }
 
     if (!data && !appData) {
