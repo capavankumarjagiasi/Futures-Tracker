@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSE F&O Tracker</title>
+<link rel="manifest" href="manifest.json">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e0e0e0; min-height:100vh; }
+.header { background:#16213e; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #2a2a4a; }
+.header h1 { font-size:18px; color:#4fc3f7; font-weight:600; }
+.sync-badge { font-size:11px; color:#81c784; background:#1b5e20; padding:3px 10px; border-radius:12px; }
+.sync-badge.pending { color:#ffb74d; background:#5d4037; }
+.sync-badge.error { color:#ef5350; background:#4a0000; }
+.nav { display:flex; gap:8px; padding:12px 16px; overflow-x:auto; background:#16213e; border-bottom:1px solid #2a2a4a; }
+.nav-btn { padding:8px 16px; border:none; border-radius:20px; background:#2a2a4a; color:#b0b0c0; font-size:13px; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+.nav-btn:hover { background:#3a3a5a; }
+.nav-btn.active { background:#4fc3f7; color:#1a1a2e; font-weight:600; }
+.content { padding:16px; max-width:1200px; margin:0 auto; }
+.section-title { font-size:13px; color:#888; text-transform:uppercase; letter-spacing:1px; margin:20px 0 10px; font-weight:600; }
+
+/* Dashboard Cards */
+.cards-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
+@media(min-width:768px){ .cards-grid { grid-template-columns:repeat(4,1fr); } }
+.card { background:#16213e; border-radius:12px; padding:16px; text-align:center; border:1px solid #2a2a4a; transition:transform 0.2s; cursor:pointer; }
+.card:hover { transform:translateY(-2px); border-color:#4fc3f7; }
+.card-icon { font-size:28px; margin-bottom:6px; }
+.card-count { font-size:32px; font-weight:700; color:#fff; }
+.card-label { font-size:12px; color:#888; margin-top:4px; }
+.card.lb .card-count { color:#ff6b35; }
+.card.sb .card-count { color:#ef5350; }
+.card.lu .card-count { color:#42a5f5; }
+.card.sc .card-count { color:#66bb6a; }
+
+/* Filters */
+.filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.filter-btn { padding:6px 14px; border:1px solid #2a2a4a; border-radius:16px; background:#16213e; color:#b0b0c0; font-size:12px; cursor:pointer; transition:all 0.2s; }
+.filter-btn:hover { border-color:#4fc3f7; }
+.filter-btn.active { background:#4fc3f7; color:#1a1a2e; border-color:#4fc3f7; font-weight:600; }
+
+/* Tables */
+.table-wrap { background:#16213e; border-radius:12px; overflow:hidden; border:1px solid #2a2a4a; }
+.table-header { display:grid; padding:10px 12px; background:#0f3460; font-size:11px; color:#aaa; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.table-row { display:grid; padding:10px 12px; border-bottom:1px solid #2a2a4a; font-size:13px; align-items:center; }
+.table-row:last-child { border-bottom:none; }
+.table-row:hover { background:#1a1a3e; }
+.col-symbol { font-weight:600; color:#4fc3f7; }
+.col-signal { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; text-align:center; }
+.signal-LB { background:#ff6b3520; color:#ff6b35; }
+.signal-SB { background:#ef535020; color:#ef5350; }
+.signal-LU { background:#42a5f520; color:#42a5f5; }
+.signal-SC { background:#66bb6a20; color:#66bb6a; }
+.col-basis { font-weight:600; }
+.basis-pos { color:#66bb6a; }
+.basis-neg { color:#ef5350; }
+.col-oi { text-align:right; }
+.col-oi .oi-chg { font-size:11px; }
+.oi-up { color:#66bb6a; }
+.oi-down { color:#ef5350; }
+.col-price { text-align:right; }
+.col-alerts { font-size:11px; }
+.alert-tag { display:inline-block; padding:2px 6px; border-radius:4px; margin:1px; font-size:10px; }
+.alert-hidisc { background:#ef535020; color:#ef5350; }
+.alert-squeeze { background:#ff980020; color:#ff9800; }
+.alert-bulltrap { background:#ff572220; color:#ff5722; }
+.alert-oispike { background:#ffeb3b20; color:#ffeb3b; }
+.alert-reshort { background:#9c27b020; color:#ce93d8; }
+.alert-recovery { background:#00bcd420; color:#00bcd4; }
+
+/* Basis Summary Bar */
+.basis-bar { display:flex; height:36px; border-radius:8px; overflow:hidden; margin-bottom:20px; font-size:11px; font-weight:600; }
+.basis-seg { display:flex; align-items:center; justify-content:center; color:#fff; min-width:60px; }
+.basis-seg.dd { background:#c62828; }
+.basis-seg.d { background:#ef6c00; }
+.basis-seg.p { background:#546e7a; }
+.basis-seg.pm { background:#0277bd; }
+.basis-seg.dp { background:#2e7d32; }
+
+/* Ban List */
+.ban-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
+.ban-badge { background:#c62828; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.ban-symbol { font-weight:600; color:#ef5350; }
+.ban-out { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border-left:3px solid #2e7d32; }
+.ban-out-badge { background:#2e7d32; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.ban-out-symbol { font-weight:600; color:#66bb6a; }
+
+/* Alerts List */
+.alert-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
+.alert-icon { font-size:16px; }
+.alert-symbol { font-weight:600; color:#4fc3f7; min-width:80px; }
+.alert-text { font-size:13px; color:#ccc; }
+
+/* Empty State */
+.empty { text-align:center; padding:40px; color:#666; font-size:14px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#1a1a2e; }
+::-webkit-scrollbar-thumb { background:#4a4a6a; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#5a5a7a; }
+
+/* Loading */
+.loading { text-align:center; padding:60px; color:#888; }
+.spinner { width:40px; height:40px; border:3px solid #2a2a4a; border-top-color:#4fc3f7; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Search */
+.search-box { width:100%; padding:10px 14px; background:#16213e; border:1px solid #2a2a4a; border-radius:8px; color:#e0e0e0; font-size:14px; margin-bottom:16px; }
+.search-box:focus { outline:none; border-color:#4fc3f7; }
+.search-box::placeholder { color:#666; }
+
+/* Select */
+.select-box { padding:8px 12px; background:#16213e; border:1px solid #2a2a4a; border-radius:8px; color:#e0e0e0; font-size:13px; margin-bottom:12px; }
+.select-box:focus { outline:none; border-color:#4fc3f7; }
+
+/* OI Tabs */
+.oi-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.oi-tab { flex:1; padding:10px; border:none; border-radius:8px; background:#16213e; color:#b0b0c0; font-size:13px; font-weight:600; cursor:pointer; border:1px solid #2a2a4a; }
+.oi-tab.active { background:#4fc3f7; color:#1a1a2e; }
+
+/* Detail Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:200; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:#16213e; border-radius:16px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid #2a2a4a; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid #2a2a4a; }
+.modal-header h2 { font-size:18px; color:#4fc3f7; }
+.modal-close { background:none; border:none; color:#888; font-size:24px; cursor:pointer; }
+.modal-body { padding:16px; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.detail-item { background:#1a1a3e; border-radius:10px; padding:12px; }
+.detail-label { font-size:11px; color:#888; margin-bottom:4px; }
+.detail-value { font-size:18px; font-weight:700; }
+.detail-signal { grid-column:1/-1; text-align:center; padding:14px; border-radius:12px; font-size:18px; font-weight:700; margin-bottom:8px; }
+
+/* Manual refresh */
+.refresh-bar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.refresh-btn { padding:8px 16px; background:#0f3460; color:#4fc3f7; border:1px solid #2a2a4a; border-radius:8px; font-size:12px; cursor:pointer; }
+.refresh-btn:hover { background:#1a4a7a; }
+.source-info { font-size:11px; color:#666; }
+
+
+/* Table horizontal scrolling */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+.table-scroll::-webkit-scrollbar { height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
+.table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
+
+/* Filter pills for reports */
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-pill {
+  padding: 6px 14px;
+  border: 1px solid #2a2a4a;
+  border-radius: 16px;
+  background: #16213e;
+  color: #b0b0c0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.filter-pill:hover { border-color: #4fc3f7; }
+.filter-pill.active { background: #4fc3f7; color: #1a1a2e; border-color: #4fc3f7; font-weight: 600; }
+
+/* Pattern filter specific */
+.pattern-filter, .alert-filter, .basis-filter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+/* Discount/Premium range filter */
+.range-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.range-filter label { font-size: 12px; color: #888; }
+.range-filter input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  accent-color: #4fc3f7;
+}
+.range-filter .range-value {
+  font-size: 12px;
+  color: #4fc3f7;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+}
+
+
+/* Sticky table header */
+.table-wrap .table-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #0f3460;
+}
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  position: relative;
+}
+.table-scroll::-webkit-scrollbar { height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
+.table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
+
+/* Responsive */
+@media(max-width:600px){
+  .table-header, .table-row { font-size:11px; padding:8px 6px; }
+  .col-symbol { font-size:12px; }
+  .card-count { font-size:24px; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 NSE F&O Tracker</h1>
+  <span class="sync-badge pending" id="syncBadge">⏳ Loading...</span>
+</div>
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('dashboard')">📈 Dashboard</button>
+  <button class="nav-btn" onclick="showTab('tracker')">🔍 Tracker</button>
+  <button class="nav-btn" onclick="showTab('oi')">🔥 OI Movers</button>
+  <button class="nav-btn" onclick="showTab('basis')">⚖️ Basis</button>
+  <button class="nav-btn" onclick="showTab('ban')">🚫 Ban List</button>
+</div>
+<div class="content" id="content">
+  <div class="loading"><div class="spinner"></div>Loading data...</div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modalSymbol">Symbol</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// CONFIGURATION - EDIT THESE URLS
+// ============================================
+const CONFIG = {
+  // PRIMARY: GitHub raw URL (RECOMMENDED - same domain, no CORS, no API keys)
+  // Replace with your actual raw GitHub URL after pushing JSON to repo
+  githubRawUrl: 'https://raw.githubusercontent.com/capavankumarjagiasi/Futures-Tracker/main/fo_snapshot.json',
+  
+  // FALLBACK: jsonbin.io (if you prefer external hosting)
+  // Replace YOUR_BIN_ID with your actual bin ID
+  jsonbinUrl: 'https://api.jsonbin.io/v3/b/YOUR_BIN_ID/latest',
+  
+  // Set to 'github' or 'jsonbin' to choose primary source
+  primarySource: 'github',
+  
+  // Date for display fallback
+  dateFmt: '05-06-2026'
+};
+
+// ============================================
+// STATE
+// ============================================
+let appData = null;
+let currentTab = 'dashboard';
+let dashboardFilter = 'all';
+
+// ============================================
+// DATA LOADING - NO GOOGLE DRIVE / NO OAUTH
+// ============================================
+async function loadData() {
+  const badge = document.getElementById('syncBadge');
+  badge.className = 'sync-badge pending';
+  badge.textContent = '⏳ Loading...';
+
+  try {
+    let data = null;
+    let source = '';
+    let errors = [];
+
+    // 1. Try localStorage cache first for instant display
+    const cached = localStorage.getItem('fo_snapshot_cache');
+    const cachedTime = localStorage.getItem('fo_snapshot_time');
+    if (cached) {
+      try {
+        data = JSON.parse(cached);
+        source = 'cache';
+        appData = processData(data);
+        render();
+      } catch(e) { console.log('Cache parse failed'); }
+    }
+
+    // 2. Fetch fresh data from primary source
+    const urlsToTry = [];
+    if (CONFIG.primarySource === 'github') {
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+    } else {
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+    }
+
+    for (const src of urlsToTry) {
+      if (data && source === 'live') break; // Already got live data
+      try {
+        console.log('Trying:', src.name, src.url);
+        const resp = await fetch(src.url, { 
+          cache: 'no-store',
+          headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {} // Add jsonbin key if needed
+        });
+        if (resp.ok) {
+          let raw = await resp.json();
+          // jsonbin.io wraps data in { record: {...}, metadata: {...} }
+          if (src.name === 'jsonbin' && raw.record) raw = raw.record;
+          data = raw;
+          source = 'live';
+          localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
+          localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+          console.log('Loaded from:', src.name);
+          break;
+        } else {
+          errors.push(`${src.name}: HTTP ${resp.status}`);
+        }
+      } catch(e) {
+        errors.push(`${src.name}: ${e.message}`);
+        console.log(src.name, 'failed:', e.message);
+      }
+    }
+
+    if (!data && !appData) {
+      throw new Error('No data available from any source. Errors: ' + errors.join('; '));
+    }
+
+    if (data) {
+      appData = processData(data);
+    }
+
+    badge.className = 'sync-badge';
+    const srcLabel = source === 'cache' ? 'Cached' : (CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin');
+    badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+    render();
+
+  } catch(err) {
+    console.error('Load error:', err);
+    badge.className = 'sync-badge error';
+    badge.textContent = '❌ Failed';
+    if (!appData) {
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <div style="font-size:48px;margin-bottom:16px;">📂</div>
+          <p>Unable to load data.</p>
+          <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
+          <p style="color:#666;margin-top:8px;font-size:12px;">${err.message}</p>
+          <div style="margin-top:16px;">
+            <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
+          </div>
+        </div>`;
+    }
+  }
+}
+
+// ============================================
+// DATA PROCESSING
+// ============================================
+function processData(raw) {
+  const tracker = raw.futures_tracker || [];
+
+  // Compute signal counts from futures_tracker (NOT signal_breakdown which is limited)
+  const signalCounts = { LB:0, SB:0, LU:0, SC:0 };
+  const signalItems = { LB:[], SB:[], LU:[], SC:[] };
+
+  tracker.forEach(item => {
+    const sig = item.signal;
+    if (signalCounts.hasOwnProperty(sig)) {
+      signalCounts[sig]++;
+      signalItems[sig].push(item);
+    }
+  });
+
+  // Categorize basis
+  const basisCats = { dd:[], d:[], p:[], pm:[], dp:[] };
+  tracker.forEach(item => {
+    const bp = item.basis_pct;
+    if (bp === null || bp === undefined) return;
+    if (bp < -1) basisCats.dd.push(item);
+    else if (bp < 0) basisCats.d.push(item);
+    else if (bp === 0) basisCats.p.push(item);
+    else if (bp <= 1) basisCats.pm.push(item);
+    else basisCats.dp.push(item);
+  });
+
+  // Extract alerts
+  const alerts = [];
+  tracker.forEach(item => {
+    if (item.alerts && item.alerts.trim()) {
+      const alertList = item.alerts.split('|').map(a => a.trim()).filter(Boolean);
+      alertList.forEach(a => alerts.push({ symbol: item.symbol, alert: a, signal: item.signal }));
+    }
+  });
+  // Sort: Hi Disc first, then by symbol
+  const alertPriority = { '🔻Hi Disc': 0, '⚡OI Spike': 1, '🚀Squeeze': 2, '⚠Bull Trap': 3, '🔄Rev↓': 4, '🔄Rev↑': 5 };
+  alerts.sort((a, b) => {
+    const pa = alertPriority[a.alert] ?? 99;
+    const pb = alertPriority[b.alert] ?? 99;
+    return pa - pb || a.symbol.localeCompare(b.symbol);
+  });
+
+  // Ban list - from futures_tracker where ban_status is 'banned'
+  const banList = tracker.filter(i => i.ban_status === 'banned');
+
+  return {
+    meta: raw.meta || {},
+    tracker,
+    signalCounts,
+    signalItems,
+    basisCats,
+    basisSummary: raw.basis_summary || [],
+    oiMovers: raw.oi_movers || { gainers:[], losers:[] },
+    alerts,
+    banList
+  };
+}
+
+// ============================================
+// RENDERING
+// ============================================
+function render() {
+  if (!appData) return;
+  const el = document.getElementById('content');
+
+  switch(currentTab) {
+    case 'dashboard': renderDashboard(el); break;
+    case 'tracker': renderTracker(el); break;
+    case 'oi': renderOI(el); break;
+    case 'basis': renderBasis(el); break;
+    case 'ban': renderBan(el); break;
+  }
+}
+
+function renderDashboard(el) {
+  const { signalCounts, basisCats, alerts, banList } = appData;
+  const total = signalCounts.LB + signalCounts.SB + signalCounts.LU + signalCounts.SC;
+
+  // Filter items for display
+  let displayItems = [];
+  if (dashboardFilter === 'all') {
+    displayItems = [...appData.signalItems.LB, ...appData.signalItems.SB, 
+                    ...appData.signalItems.LU, ...appData.signalItems.SC];
+  } else {
+    displayItems = appData.signalItems[dashboardFilter] || [];
+  }
+  // Sort by conv_score desc, then OI change
+  displayItems.sort((a, b) => (b.conv_score - a.conv_score) || (b.oi_chg - a.oi_chg));
+
+  const basisTotal = basisCats.dd.length + basisCats.d.length + basisCats.p.length + basisCats.pm.length + basisCats.dp.length;
+
+  let html = `
+    <!-- Refresh Bar -->
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
+      <span class="source-info">Source: ${CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin.io'}</span>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="cards-grid">
+      <div class="card lb" onclick="setFilter('LB')">
+        <div class="card-icon">🔥</div>
+        <div class="card-count">${signalCounts.LB}</div>
+        <div class="card-label">Long Buildup</div>
+      </div>
+      <div class="card sb" onclick="setFilter('SB')">
+        <div class="card-icon">🐻</div>
+        <div class="card-count">${signalCounts.SB}</div>
+        <div class="card-label">Short Buildup</div>
+      </div>
+      <div class="card lu" onclick="setFilter('LU')">
+        <div class="card-icon">💧</div>
+        <div class="card-count">${signalCounts.LU}</div>
+        <div class="card-label">Long Unwinding</div>
+      </div>
+      <div class="card sc" onclick="setFilter('SC')">
+        <div class="card-icon">⚡</div>
+        <div class="card-count">${signalCounts.SC}</div>
+        <div class="card-label">Short Covering</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <button class="filter-btn ${dashboardFilter==='all'?'active':''}" onclick="setFilter('all')">All (${total})</button>
+      <button class="filter-btn ${dashboardFilter==='LB'?'active':''}" onclick="setFilter('LB')">LB (${signalCounts.LB})</button>
+      <button class="filter-btn ${dashboardFilter==='SB'?'active':''}" onclick="setFilter('SB')">SB (${signalCounts.SB})</button>
+      <button class="filter-btn ${dashboardFilter==='LU'?'active':''}" onclick="setFilter('LU')">LU (${signalCounts.LU})</button>
+      <button class="filter-btn ${dashboardFilter==='SC'?'active':''}" onclick="setFilter('SC')">SC (${signalCounts.SC})</button>
+    </div>
+
+    <!-- Filtered Results Table -->
+    <div class="table-scroll">
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr; min-width: 600px;">
+          <span>Symbol</span><span>Signal</span><span>Basis%</span><span>LTP</span><span>OI</span><span>OI Chg</span><span>Alerts / Pattern</span>
+        </div>
+  `;
+
+  if (displayItems.length === 0) {
+    html += `<div class="empty">No items match the selected filter</div>`;
+  } else {
+    displayItems.forEach(item => {
+      const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+      const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
+      const oiArrow = (item.oi_chg || 0) >= 0 ? '▲' : '▼';
+      html += `
+        <div class="table-row" style="grid-template-columns: 80px 60px 50px 70px 80px 80px 100px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <span class="col-symbol">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
+          <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
+          <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span class="col-price">${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+          <span class="col-oi">${formatNumber(item.oi)}</span>
+          <span class="col-oi ${oiClass}">${oiArrow} ${formatNumber(Math.abs(item.oi_chg))}</span>
+          <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+        </div>
+      `;
+    });
+  }
+  html += `</div></div>`;
+
+  // Basis Summary Bar
+  html += `
+    <div class="section-title">Basis Summary</div>
+    <div class="basis-bar">
+      <div class="basis-seg dd" style="width:${basisTotal?(basisCats.dd.length/basisTotal*100):0}%">${basisCats.dd.length>0?basisCats.dd.length+' DD':''}</div>
+      <div class="basis-seg d" style="width:${basisTotal?(basisCats.d.length/basisTotal*100):0}%">${basisCats.d.length>0?basisCats.d.length+' D':''}</div>
+      <div class="basis-seg p" style="width:${basisTotal?(basisCats.p.length/basisTotal*100):0}%">${basisCats.p.length>0?basisCats.p.length+' P':''}</div>
+      <div class="basis-seg pm" style="width:${basisTotal?(basisCats.pm.length/basisTotal*100):0}%">${basisCats.pm.length>0?basisCats.pm.length+' Pm':''}</div>
+      <div class="basis-seg dp" style="width:${basisTotal?(basisCats.dp.length/basisTotal*100):0}%">${basisCats.dp.length>0?basisCats.dp.length+' DP':''}</div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:11px;color:#888;margin-bottom:20px;flex-wrap:wrap;">
+      <span><span style="color:#c62828;">■</span> Deep Discount (&lt;-1%)</span>
+      <span><span style="color:#ef6c00;">■</span> Discount (-1% to 0)</span>
+      <span><span style="color:#546e7a;">■</span> Par (0)</span>
+      <span><span style="color:#0277bd;">■</span> Premium (0 to +1%)</span>
+      <span><span style="color:#2e7d32;">■</span> Deep Premium (&gt;+1%)</span>
+    </div>
+  `;
+
+  // Ban List
+  html += `<div class="section-title">Ban List</div>`;
+  if (banList.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No securities banned</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    banList.forEach(item => {
+      html += `
+        <div class="ban-item" onclick="showDetail('${item.symbol}')" style="cursor:pointer;">
+          <span class="ban-badge">🚫 BANNED</span>
+          <span class="ban-symbol">${item.symbol}</span>
+          <span style="color:#888;font-size:12px;">OI: ${formatNumber(item.oi)} | LTP: ${item.ltp}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  // Top Alerts
+  html += `<div class="section-title">Top Alerts</div>`;
+  if (alerts.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No alerts</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    alerts.slice(0, 15).forEach(a => {
+      const alertClass = getAlertClass(a.alert);
+      html += `
+        <div class="alert-item" onclick="showDetail('${a.symbol}')" style="cursor:pointer;">
+          <span class="alert-symbol">${a.symbol}</span>
+          <span class="alert-tag ${alertClass}">${a.alert}</span>
+          <span style="color:#666;font-size:11px;">${a.signal}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderTracker(el) {
+  let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+      <span class="source-info">${appData.tracker.length} symbols</span>
+    </div>
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search symbol..." oninput="filterTracker()">
+
+    <!-- Pattern Filter -->
+    <div class="filter-pills" id="patternFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Pattern:</span>
+      <button class="filter-pill active" onclick="setTrackerPattern('all')">All</button>
+      <button class="filter-pill" onclick="setTrackerPattern('LB')">LB</button>
+      <button class="filter-pill" onclick="setTrackerPattern('SB')">SB</button>
+      <button class="filter-pill" onclick="setTrackerPattern('LU')">LU</button>
+      <button class="filter-pill" onclick="setTrackerPattern('SC')">SC</button>
+    </div>
+
+    <!-- Alert Filter -->
+    <div class="filter-pills" id="alertFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Alert:</span>
+      <button class="filter-pill active" onclick="setTrackerAlert('all')">All</button>
+      <button class="filter-pill" onclick="setTrackerAlert('Hi Disc')">🔻Hi Disc</button>
+      <button class="filter-pill" onclick="setTrackerAlert('Squeeze')">🚀Squeeze</button>
+      <button class="filter-pill" onclick="setTrackerAlert('Bull Trap')">⚠Bull Trap</button>
+      <button class="filter-pill" onclick="setTrackerAlert('OI Spike')">⚡OI Spike</button>
+      <button class="filter-pill" onclick="setTrackerAlert('Rev')">🔄Reversal</button>
+    </div>
+
+    <!-- Expiry Filter -->
+    <div class="filter-pills" id="expiryFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Expiry:</span>
+      <button class="filter-pill active" onclick="setTrackerExpiry('all')">All</button>
+      <button class="filter-pill" onclick="setTrackerExpiry('Near')">Near</button>
+      <button class="filter-pill" onclick="setTrackerExpiry('Next')">Next</button>
+      <button class="filter-pill" onclick="setTrackerExpiry('Far')">Far</button>
+    </div>
+
+    <!-- Discount/Premium Filter (Pills) -->
+    <div class="filter-pills" id="basisFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Basis:</span>
+      <button class="filter-pill active" onclick="setTrackerBasis('all')">All</button>
+      <button class="filter-pill" onclick="setTrackerBasis('dd')">🔴 Deep Disc</button>
+      <button class="filter-pill" onclick="setTrackerBasis('d')">🟠 Discount</button>
+      <button class="filter-pill" onclick="setTrackerBasis('p')">⚪ Parity</button>
+      <button class="filter-pill" onclick="setTrackerBasis('pm')">🔵 Premium</button>
+      <button class="filter-pill" onclick="setTrackerBasis('dp')">🟢 Deep Prem</button>
+    </div>
+
+    <div class="table-scroll">
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Exp</span><span>Pattern</span>
+        </div>
+        <div id="trackerRows">
+  `;
+
+  appData.tracker.forEach(item => {
+    const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+    const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
+    html += `
+          <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" data-basis="${item.basis_pct !== null ? item.basis_pct : 0}" data-basiscat="${item.basis_pct !== null ? (item.basis_pct < -1 ? 'dd' : item.basis_pct < 0 ? 'd' : item.basis_pct === 0 ? 'p' : item.basis_pct <= 1 ? 'pm' : 'dp') : 'p'}" data-expiry="${item.expiry || 'Near'}" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+            <span class="col-symbol">${item.symbol}</span>
+            <span class="col-signal signal-${item.signal}">${item.signal}</span>
+            <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
+            <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+            <span>${item.spot !== null ? item.spot.toFixed(1) : '-'}</span>
+            <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+            <span class="col-oi ${oiClass}">${formatNumber(item.oi)}<br><span class="oi-chg">${item.oi_chg>=0?'▲':'▼'} ${formatNumber(Math.abs(item.oi_chg))}</span></span>
+            <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+            <span style="font-size:10px;color:#888;text-align:center;">${item.expiry || 'Near'}</span>
+            <span class="col-alerts">${item.pattern || '-'}</span>
+          </div>
+        `;
+  });
+
+  html += `</div></div></div>`;
+  el.innerHTML = html;
+}
+
+function renderOI(el) {
+  const { gainers, losers } = appData.oiMovers;
+
+  let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    </div>
+
+    <!-- Alert Filter -->
+    <div class="filter-pills" id="oiAlertFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Filter:</span>
+      <button class="filter-pill active" onclick="setOIAlert('all')">All</button>
+      <button class="filter-pill" onclick="setOIAlert('Hi Disc')">🔻Hi Disc</button>
+      <button class="filter-pill" onclick="setOIAlert('Squeeze')">🚀Squeeze</button>
+      <button class="filter-pill" onclick="setOIAlert('Bull Trap')">⚠Bull Trap</button>
+      <button class="filter-pill" onclick="setOIAlert('OI Spike')">⚡OI Spike</button>
+      <button class="filter-pill" onclick="setOIAlert('Rev')">🔄Reversal</button>
+    </div>
+
+    <div class="section-title">🔥 OI Gainers (Top 25)</div>
+    <div class="table-scroll">
+      <div class="table-wrap" style="margin-bottom:24px;">
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+        </div>
+  `;
+
+  gainers.forEach(item => {
+    html += `
+        <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <span class="col-symbol">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
+          <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
+          <span class="oi-up">▲ ${formatNumber(item.oi_chg)}</span>
+          <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+          <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+          <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+        </div>
+    `;
+  });
+  html += `</div></div>`;
+
+  html += `
+    <div class="section-title">❄️ OI Losers (Top 25)</div>
+    <div class="table-scroll">
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
+        </div>
+  `;
+
+  losers.forEach(item => {
+    html += `
+        <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <span class="col-symbol">${item.symbol}</span>
+          <span class="col-signal signal-${item.signal}">${item.signal}</span>
+          <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
+          <span class="oi-down">▼ ${formatNumber(Math.abs(item.oi_chg))}</span>
+          <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
+          <span class="${item.price_chg>=0?'oi-up':'oi-down'}">${item.price_chg>=0?'▲':'▼'} ${Math.abs(item.price_chg).toFixed(1)}</span>
+          <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+        </div>
+    `;
+  });
+  html += `</div></div>`;
+
+  el.innerHTML = html;
+}
+
+function renderBasis(el) {
+  let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+      <span class="source-info">${appData.basisSummary.length} items</span>
+    </div>
+
+    <!-- Basis Category Filter -->
+    <div class="filter-pills" id="basisCatFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Basis:</span>
+      <button class="filter-pill active" onclick="setBasisCat('all')">All</button>
+      <button class="filter-pill" onclick="setBasisCat('dd')">🔴 Deep Disc (&lt;-1%)</button>
+      <button class="filter-pill" onclick="setBasisCat('d')">🟠 Discount (-1% to 0)</button>
+      <button class="filter-pill" onclick="setBasisCat('p')">⚪ Parity (0)</button>
+      <button class="filter-pill" onclick="setBasisCat('pm')">🔵 Premium (0 to +1%)</button>
+      <button class="filter-pill" onclick="setBasisCat('dp')">🟢 Deep Prem (&gt;+1%)</button>
+    </div>
+
+    <!-- Conv★ Filter -->
+    <div class="range-filter">
+      <label>Conv★ ≥</label>
+      <input type="range" id="convRange" min="0" max="5" step="1" value="0" oninput="filterBasisConv(this.value)">
+      <span class="range-value" id="convRangeVal">All</span>
+    </div>
+
+    <!-- Alert Filter -->
+    <div class="filter-pills" id="basisAlertFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Alert:</span>
+      <button class="filter-pill active" onclick="setBasisAlert('all')">All</button>
+      <button class="filter-pill" onclick="setBasisAlert('Hi Disc')">🔻Hi Disc</button>
+      <button class="filter-pill" onclick="setBasisAlert('Squeeze')">🚀Squeeze</button>
+      <button class="filter-pill" onclick="setBasisAlert('Bull Trap')">⚠Bull Trap</button>
+      <button class="filter-pill" onclick="setBasisAlert('OI Spike')">⚡OI Spike</button>
+      <button class="filter-pill" onclick="setBasisAlert('Rev')">🔄Reversal</button>
+    </div>
+
+    <div class="section-title">⚖️ Basis Summary (Sorted by Basis %)</div>
+    <div class="table-scroll">
+      <div class="table-wrap">
+        <div class="table-header" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px;">
+          <span>Symbol</span><span>Basis%</span><span>Conv★</span><span>Basis</span><span>LTP</span><span>Spot</span><span>FV Diff</span><span>Signal / Alerts</span>
+        </div>
+  `;
+
+  appData.basisSummary.forEach(item => {
+    const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
+    let cat = 'p';
+    const bp = item.basis_pct;
+    if (bp === null || bp === undefined) cat = 'p';
+    else if (bp < -1) cat = 'dd';
+    else if (bp < 0) cat = 'd';
+    else if (bp === 0) cat = 'p';
+    else if (bp <= 1) cat = 'pm';
+    else cat = 'dp';
+
+    html += `
+        <div class="table-row basis-row" data-cat="${cat}" data-conv="${item.conv_score !== null ? item.conv_score : 0}" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <span class="col-symbol">${item.symbol}</span>
+          <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
+          <span>${item.basis !== null ? item.basis.toFixed(1) : '-'}</span>
+          <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+          <span>${item.spot !== null ? item.spot.toFixed(1) : '-'}</span>
+          <span class="${(item.fv_diff||0)>=0?'basis-pos':'basis-neg'}">${item.fv_diff !== null ? item.fv_diff.toFixed(1) : '-'}</span>
+          <span class="col-alerts">${renderAlerts(item.alerts, item.pattern)}</span>
+        </div>
+    `;
+  });
+  html += `</div></div>`;
+
+  el.innerHTML = html;
+}
+
+function renderBan(el) {
+  const banList = appData.banList;
+  let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    </div>
+    <div class="section-title">🚫 Banned Securities</div>
+  `;
+
+  if (banList.length === 0) {
+    html += `<div class="empty" style="padding:40px;">No securities currently banned</div>`;
+  } else {
+    html += `<div class="table-scroll"><div class="table-wrap">`;
+    html += `
+      <div class="table-header" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px;">
+        <span>Symbol</span><span>Status</span><span>OI</span><span>LTP</span><span>Basis%</span><span>Pattern</span>
+      </div>
+    `;
+    banList.forEach(item => {
+      html += `
+        <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
+          <span style="color:#ef5350;font-weight:600;">🚫 BANNED</span>
+          <span>${formatNumber(item.oi)}</span>
+          <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
+          <span class="${(item.basis_pct||0)>=0?'basis-pos':'basis-neg'}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
+          <span class="col-alerts">${item.pattern || '-'}</span>
+        </div>
+      `;
+    });
+    html += `</div></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ============================================
+// SYMBOL DETAIL MODAL
+// ============================================
+function showDetail(symbol) {
+  const item = appData.tracker.find(x => x.symbol === symbol);
+  if (!item) return;
+
+  document.getElementById('modalSymbol').textContent = symbol;
+
+  const trendColors = { LB: '#27ae60', SB: '#c0392b', LU: '#e67e22', SC: '#9b59b6' };
+  const trendLabels = { LB: '🔥 Long Buildup', SB: '🐻 Short Buildup', LU: '💧 Long Unwinding', SC: '⚡ Short Covering' };
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-signal" style="background:${trendColors[item.signal] || '#5a6a7a'}20; color:${trendColors[item.signal] || '#fff'}">
+        ${trendLabels[item.signal] || '—'}
+      </div>
+      <div class="detail-item"><div class="detail-label">Spot Price</div><div class="detail-value">₹${item.spot !== null ? item.spot.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Fut Price</div><div class="detail-value">₹${item.ltp !== null ? item.ltp.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Basis %</div><div class="detail-value" style="color:${item.basis_pct > 0 ? '#66bb6a' : '#ef5350'}">${item.basis_pct !== null ? (item.basis_pct >= 0 ? '+' : '') + item.basis_pct.toFixed(2) + '%' : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Fair Value</div><div class="detail-value">₹${item.fair_value !== null ? item.fair_value.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">FV Diff</div><div class="detail-value" style="color:${(item.fv_diff||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.fv_diff !== null ? (item.fv_diff >= 0 ? '+' : '') + item.fv_diff.toFixed(2) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Conv★</div><div class="detail-value">${item.conv_score !== null ? item.conv_score : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Open Interest</div><div class="detail-value">${formatNumber(item.oi)}</div></div>
+      <div class="detail-item"><div class="detail-label">OI Change</div><div class="detail-value" style="color:${(item.oi_chg||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.oi_chg !== null ? (item.oi_chg >= 0 ? '+' : '') + formatNumber(item.oi_chg) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">OI 5d %</div><div class="detail-value">${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1) + '%' : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Price Chg</div><div class="detail-value" style="color:${(item.price_chg||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.price_chg !== null ? (item.price_chg >= 0 ? '+' : '') + item.price_chg.toFixed(1) : '—'}</div></div>
+    </div>
+    ${item.pattern && item.pattern !== '—' ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:#888;margin-bottom:4px;">Pattern</div><div style="font-size:16px;font-weight:600">${item.pattern}</div></div>` : ''}
+    ${item.alerts ? `<div><div style="font-size:11px;color:#888;margin-bottom:4px;">Alerts</div><div style="font-size:14px;color:#ccc;line-height:1.6">${renderAlerts(item.alerts, '')}</div></div>` : ''}
+  `;
+
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function formatNumber(n) {
+  if (n === null || n === undefined) return '-';
+  if (Math.abs(n) >= 10000000) return (n/10000000).toFixed(1) + 'Cr';
+  if (Math.abs(n) >= 100000) return (n/100000).toFixed(1) + 'L';
+  if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function renderAlerts(alerts, pattern) {
+  let html = '';
+  if (pattern && pattern !== '↓→▼→▲' && pattern !== '↑→▼→↓' && pattern !== '▼→▲→▼' && 
+      pattern !== 'SC×2' && pattern !== 'LB×2' && pattern !== 'LU×2' && pattern !== 'SB×2' &&
+      pattern !== '▲→▲→↑' && pattern !== '▼→▼→↓' && pattern !== '↑→↑→↓' && pattern !== '↓→↓→↑') {
+    html += `<span style="color:#888;margin-right:4px;">${pattern}</span>`;
+  }
+  if (alerts && alerts.trim()) {
+    const list = alerts.split('|').map(a => a.trim()).filter(Boolean);
+    list.forEach(a => {
+      html += `<span class="alert-tag ${getAlertClass(a)}">${a}</span>`;
+    });
+  }
+  return html || '-';
+}
+
+function getAlertClass(alert) {
+  if (alert.includes('Hi Disc')) return 'alert-hidisc';
+  if (alert.includes('Squeeze')) return 'alert-squeeze';
+  if (alert.includes('Bull Trap')) return 'alert-bulltrap';
+  if (alert.includes('OI Spike')) return 'alert-oispike';
+  if (alert.includes('Rev↓') || alert.includes('Re-Short')) return 'alert-reshort';
+  if (alert.includes('Rev↑') || alert.includes('Recovery')) return 'alert-recovery';
+  return 'alert-tag';
+}
+
+// ============================================
+// INTERACTION
+// ============================================
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+function setFilter(filter) {
+  dashboardFilter = filter;
+  renderDashboard(document.getElementById('content'));
+}
+
+function filterTracker() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  document.querySelectorAll('.tracker-row').forEach(row => {
+    const sym = row.getAttribute('data-symbol');
+    row.style.display = sym.includes(q) ? '' : 'none';
+  });
+}
+
+
+// ============================================
+// DASHBOARD FILTERS
+// ============================================
+let dashPattern = 'all';
+let oiChgVisible = false;
+
+function setDashPattern(pattern) {
+  dashPattern = pattern;
+  document.querySelectorAll('#dashPatternFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🚀⚠⚡🔻🔄]/g, '').trim().toLowerCase();
+    const patMap = { 'all': 'all', 'squeeze': 'squeeze', 'bull': 'bull trap', 'spike': 'oi spike', 'hidisc': 'hi disc', 'rev': 'reversal' };
+    btn.classList.toggle('active', btnText === patMap[pattern]);
+  });
+  applyDashFilters();
+}
+
+function toggleOIChg() {
+  oiChgVisible = !oiChgVisible;
+  const btn = document.getElementById('oiToggleBtn');
+  if (btn) btn.textContent = 'OI Chg: ' + (oiChgVisible ? 'ON' : 'OFF');
+  if (btn) btn.classList.toggle('active', oiChgVisible);
+
+  // Re-render dashboard to show/hide OI Chg column
+  renderDashboard(document.getElementById('content'));
+}
+
+function applyDashFilters() {
+  document.querySelectorAll('.dash-row').forEach(row => {
+    const pattern = row.getAttribute('data-pattern') || '';
+    const alerts = row.getAttribute('data-alerts') || '';
+    let show = true;
+    if (dashPattern !== 'all') {
+      const patMap = { 'squeeze': 'squeeze', 'bull': 'bull trap', 'spike': 'oi spike', 'hidisc': 'hi disc', 'rev': 'reversal' };
+      const searchTerm = patMap[dashPattern];
+      if (!pattern.includes(searchTerm) && !alerts.includes(searchTerm)) show = false;
+    }
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+// ============================================
+// TRACKER FILTERS
+// ============================================
+let trackerPattern = 'all';
+let trackerAlert = 'all';
+let trackerBasisCat = 'all';
+let trackerExpiry = 'all';
+
+function setTrackerPattern(pattern) {
+  trackerPattern = pattern;
+  document.querySelectorAll('#patternFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (pattern === 'all' ? 'All' : pattern));
+  });
+  applyTrackerFilters();
+}
+
+function setTrackerAlert(alert) {
+  trackerAlert = alert;
+  document.querySelectorAll('#alertFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔻🚀⚠⚡🔄]/g, '').trim();
+    const isMatch = alert === 'all' ? btn.textContent === 'All' : btnText.includes(alert.replace('Hi Disc', 'Hi Disc').replace('Rev', 'Rev'));
+    btn.classList.toggle('active', isMatch);
+  });
+  applyTrackerFilters();
+}
+
+
+
+function setTrackerExpiry(expiry) {
+  trackerExpiry = expiry;
+  document.querySelectorAll('#expiryFilter .filter-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === (expiry === 'all' ? 'All' : expiry));
+  });
+  applyTrackerFilters();
+}
+
+function setTrackerBasis(cat) {
+  trackerBasisCat = cat;
+  const map = { 'all': 'All', 'dd': 'Deep Disc', 'd': 'Discount', 'p': 'Parity', 'pm': 'Premium', 'dp': 'Deep Prem' };
+  document.querySelectorAll('#basisFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔴🟠⚪🔵🟢]/g, '').trim();
+    btn.classList.toggle('active', btnText === (cat === 'all' ? 'All' : map[cat]));
+  });
+  applyTrackerFilters();
+}
+
+function applyTrackerFilters() {
+  document.querySelectorAll('.tracker-row').forEach(row => {
+    const signal = row.getAttribute('data-signal');
+    const alerts = row.getAttribute('data-alerts') || '';
+    const basisCat = row.getAttribute('data-basiscat') || 'p';
+    const expiry = row.getAttribute('data-expiry') || 'Near';
+
+    let show = true;
+    if (trackerPattern !== 'all' && signal !== trackerPattern) show = false;
+    if (trackerAlert !== 'all' && !alerts.includes(trackerAlert.toLowerCase())) show = false;
+    if (trackerExpiry !== 'all' && expiry !== trackerExpiry) show = false;
+    if (trackerBasisCat !== 'all' && basisCat !== trackerBasisCat) show = false;
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+// ============================================
+// OI FILTERS
+// ============================================
+let oiAlertFilter = 'all';
+
+function setOIAlert(alert) {
+  oiAlertFilter = alert;
+  document.querySelectorAll('#oiAlertFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔻🚀⚠⚡🔄]/g, '').trim();
+    const isMatch = alert === 'all' ? btn.textContent === 'All' : btnText.includes(alert.replace('Hi Disc', 'Hi Disc').replace('Rev', 'Rev'));
+    btn.classList.toggle('active', isMatch);
+  });
+  applyOIFilters();
+}
+
+function applyOIFilters() {
+  document.querySelectorAll('.oi-row').forEach(row => {
+    const alerts = row.getAttribute('data-alerts') || '';
+    let show = true;
+    if (oiAlertFilter !== 'all' && !alerts.includes(oiAlertFilter.toLowerCase())) show = false;
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+// ============================================
+// BASIS FILTERS
+// ============================================
+let basisCatFilter = 'all';
+let basisAlertFilter = 'all';
+
+function setBasisCat(cat) {
+  basisCatFilter = cat;
+  document.querySelectorAll('#basisCatFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔴🟠⚪🔵🟢]/g, '').trim();
+    const map = { 'all': 'All', 'dd': 'Deep Disc', 'd': 'Discount', 'p': 'Parity', 'pm': 'Premium', 'dp': 'Deep Prem' };
+    const isMatch = cat === 'all' ? btn.textContent === 'All' : btnText.includes(map[cat]);
+    btn.classList.toggle('active', isMatch);
+  });
+  applyBasisFilters();
+}
+
+function setBasisAlert(alert) {
+  basisAlertFilter = alert;
+  document.querySelectorAll('#basisAlertFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔻🚀⚠⚡🔄]/g, '').trim();
+    const isMatch = alert === 'all' ? btn.textContent === 'All' : btnText.includes(alert.replace('Hi Disc', 'Hi Disc').replace('Rev', 'Rev'));
+    btn.classList.toggle('active', isMatch);
+  });
+  applyBasisFilters();
+}
+
+let basisConvMin = 0;
+
+function filterBasisConv(val) {
+  basisConvMin = parseInt(val);
+  document.getElementById('convRangeVal').textContent = basisConvMin === 0 ? 'All' : '≥ ' + basisConvMin;
+  applyBasisFilters();
+}
+
+function applyBasisFilters() {
+  document.querySelectorAll('.basis-row').forEach(row => {
+    const cat = row.getAttribute('data-cat');
+    const alerts = row.getAttribute('data-alerts') || '';
+    const conv = parseInt(row.getAttribute('data-conv') || 0);
+    let show = true;
+    if (basisCatFilter !== 'all' && cat !== basisCatFilter) show = false;
+    if (basisAlertFilter !== 'all' && !alerts.includes(basisAlertFilter.toLowerCase())) show = false;
+    if (basisConvMin > 0 && conv < basisConvMin) show = false;
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+// ============================================
+// INIT
+// ============================================
+loadData();
+// Auto-refresh every 5 minutes
+setInterval(loadData, 300000);
+</script>
+</body>
+</html>
