@@ -6,22 +6,6 @@
 <title>NSE F&O Tracker</title>
 <link rel="manifest" href="manifest.json">
 <style>
-/* FORCE horizontal scroll */
-.table-scroll {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  width: 100%;
-  display: block;
-  position: relative;
-}
-.table-scroll > .table-wrap {
-  min-width: fit-content;
-}
-.table-scroll .table-header,
-.table-scroll .table-row {
-  min-width: max-content;
-}
-
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e0e0e0; min-height:100vh; }
 .header { background:#16213e; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #2a2a4a; }
@@ -156,12 +140,23 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .source-info { font-size:11px; color:#666; }
 
 
-/* Table horizontal scrolling */
+/* FORCE horizontal scroll */
 .table-scroll {
-  overflow-x: auto;
+  overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   width: 100%;
+  display: block;
+  position: relative;
 }
+.table-scroll > .table-wrap {
+  min-width: fit-content;
+}
+.table-scroll .table-header,
+.table-scroll .table-row {
+  min-width: max-content;
+}
+
+/* Table horizontal scrolling */
 .table-scroll::-webkit-scrollbar { height: 6px; }
 .table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
 .table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
@@ -218,7 +213,6 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   text-align: right;
 }
 
-
 /* Sticky table header */
 .table-wrap .table-header {
   position: sticky;
@@ -226,16 +220,6 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   z-index: 50;
   background: #0f3460;
 }
-.table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  width: 100%;
-  position: relative;
-}
-.table-scroll::-webkit-scrollbar { height: 6px; }
-.table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
-.table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
-
 /* Responsive */
 @media(max-width:600px){
   .table-header, .table-row { font-size:11px; padding:8px 6px; }
@@ -312,7 +296,7 @@ function setSortKey(tab, column) {
   } else {
     sortState[tab] = { column: column, direction: 'asc' };
   }
-  render(); // re-render with sort
+  render();
 }
 
 function sortData(data, tab, column, direction) {
@@ -358,104 +342,89 @@ async function loadData() {
   badge.className = 'sync-badge pending';
   badge.textContent = '⏳ Loading...';
 
-  let data = null;
-  let source = '';
-  let errors = [];
+  try {
+    let data = null;
+    let source = '';
+    let errors = [];
 
-  // 1. Try localStorage cache first for instant display
-  const cached = localStorage.getItem('fo_snapshot_cache');
-  if (cached) {
-    try {
-      data = JSON.parse(cached);
-      source = 'cache';
-      appData = processData(data);
-      badge.className = 'sync-badge';
-      badge.textContent = '✅ Cached ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
-      render();
-      console.log('Loaded from cache');
-    } catch(e) {
-      console.log('Cache parse failed:', e.message);
-      localStorage.removeItem('fo_snapshot_cache');
-      localStorage.removeItem('fo_snapshot_time');
-      data = null;
+    // 1. Try localStorage cache first for instant display
+    const cached = localStorage.getItem('fo_snapshot_cache');
+    const cachedTime = localStorage.getItem('fo_snapshot_time');
+    if (cached) {
+      try {
+        data = JSON.parse(cached);
+        source = 'cache';
+        appData = processData(data);
+        render();
+      } catch(e) { console.log('Cache parse failed'); }
     }
-  }
 
-  // 2. Fetch fresh data from primary source with timeout
-  const urlsToTry = [];
-  if (CONFIG.primarySource === 'github') {
-    urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
-    urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
-  } else {
-    urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
-    urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
-  }
+    // 2. Fetch fresh data from primary source
+    const urlsToTry = [];
+    if (CONFIG.primarySource === 'github') {
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+    } else {
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+    }
 
-  for (const src of urlsToTry) {
-    try {
-      console.log('Trying:', src.name, src.url);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-      const resp = await fetch(src.url, { 
-        signal: controller.signal,
-        cache: 'no-store',
-        headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {}
-      });
-      clearTimeout(timeoutId);
-
-      if (resp.ok) {
-        let raw = await resp.json();
-        if (src.name === 'jsonbin' && raw.record) raw = raw.record;
-        data = raw;
-        source = 'live';
-        localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
-        localStorage.setItem('fo_snapshot_time', new Date().toISOString());
-        console.log('Loaded from:', src.name);
-        break;
-      } else {
-        errors.push(`${src.name}: HTTP ${resp.status}`);
-      }
-    } catch(e) {
-      if (e.name === 'AbortError') {
-        errors.push(`${src.name}: Timeout`);
-      } else {
+    for (const src of urlsToTry) {
+      if (data && source === 'live') break; // Already got live data
+      try {
+        console.log('Trying:', src.name, src.url);
+        const resp = await fetch(src.url, { 
+          cache: 'no-store',
+          headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {} // Add jsonbin key if needed
+        });
+        if (resp.ok) {
+          let raw = await resp.json();
+          // jsonbin.io wraps data in { record: {...}, metadata: {...} }
+          if (src.name === 'jsonbin' && raw.record) raw = raw.record;
+          data = raw;
+          source = 'live';
+          localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
+          localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+          console.log('Loaded from:', src.name);
+          break;
+        } else {
+          errors.push(`${src.name}: HTTP ${resp.status}`);
+        }
+      } catch(e) {
         errors.push(`${src.name}: ${e.message}`);
+        console.log(src.name, 'failed:', e.message);
       }
-      console.log(src.name, 'failed:', e.message);
     }
-  }
 
-  // 3. Process fresh data if fetched
-  if (data && source === 'live') {
-    try {
+    if (!data && !appData) {
+      throw new Error('No data available from any source. Errors: ' + errors.join('; '));
+    }
+
+    if (data) {
       appData = processData(data);
-      badge.className = 'sync-badge';
-      const srcLabel = CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin';
-      badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
-      render();
-    } catch(e) {
-      console.error('processData failed:', e.message);
-      errors.push('processData: ' + e.message);
-      // Keep existing appData if available
     }
-  }
 
-  // 4. Final check - if still no data, show error
-  if (!appData) {
-    console.error('Load error:', errors.join('; '));
+    badge.className = 'sync-badge';
+    const srcLabel = source === 'cache' ? 'Cached' : (CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin');
+    badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+    render();
+
+  } catch(err) {
+    console.error('Load error:', err);
     badge.className = 'sync-badge error';
     badge.textContent = '❌ Failed';
-    document.getElementById('content').innerHTML = `
-      <div class="empty">
-        <div style="font-size:48px;margin-bottom:16px;">📂</div>
-        <p>Unable to load data.</p>
-        <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
-        <p style="color:#666;margin-top:8px;font-size:12px;">${errors.join('; ')}</p>
-        <div style="margin-top:16px;">
-          <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
-        </div>
-      </div>`;
+    if (!appData) {
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <div style="font-size:48px;margin-bottom:16px;">📂</div>
+          <p>Unable to load data.</p>
+          <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
+          <p style="color:#666;margin-top:8px;font-size:12px;">${err.message}</p>
+          <div style="margin-top:16px;">
+            <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
+          </div>
+        </div>`;
+    }
   }
 }
 
@@ -691,6 +660,67 @@ function renderDashboard(el) {
   el.innerHTML = html;
 }
 
+
+
+  // Basis Summary Bar
+  html += `
+    <div class="section-title">Basis Summary</div>
+    <div class="basis-bar">
+      <div class="basis-seg dd" style="width:${basisTotal?(basisCats.dd.length/basisTotal*100):0}%">${basisCats.dd.length>0?basisCats.dd.length+' DD':''}</div>
+      <div class="basis-seg d" style="width:${basisTotal?(basisCats.d.length/basisTotal*100):0}%">${basisCats.d.length>0?basisCats.d.length+' D':''}</div>
+      <div class="basis-seg p" style="width:${basisTotal?(basisCats.p.length/basisTotal*100):0}%">${basisCats.p.length>0?basisCats.p.length+' P':''}</div>
+      <div class="basis-seg pm" style="width:${basisTotal?(basisCats.pm.length/basisTotal*100):0}%">${basisCats.pm.length>0?basisCats.pm.length+' Pm':''}</div>
+      <div class="basis-seg dp" style="width:${basisTotal?(basisCats.dp.length/basisTotal*100):0}%">${basisCats.dp.length>0?basisCats.dp.length+' DP':''}</div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:11px;color:#888;margin-bottom:20px;flex-wrap:wrap;">
+      <span><span style="color:#c62828;">■</span> Deep Discount (&lt;-1%)</span>
+      <span><span style="color:#ef6c00;">■</span> Discount (-1% to 0)</span>
+      <span><span style="color:#546e7a;">■</span> Par (0)</span>
+      <span><span style="color:#0277bd;">■</span> Premium (0 to +1%)</span>
+      <span><span style="color:#2e7d32;">■</span> Deep Premium (&gt;+1%)</span>
+    </div>
+  `;
+
+  // Ban List
+  html += `<div class="section-title">Ban List</div>`;
+  if (banList.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No securities banned</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    banList.forEach(item => {
+      html += `
+        <div class="ban-item" onclick="showDetail('${item.symbol}')" style="cursor:pointer;">
+          <span class="ban-badge">🚫 BANNED</span>
+          <span class="ban-symbol">${item.symbol}</span>
+          <span style="color:#888;font-size:12px;">OI: ${formatNumber(item.oi)} | LTP: ${item.ltp}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  // Top Alerts
+  html += `<div class="section-title">Top Alerts</div>`;
+  if (alerts.length === 0) {
+    html += `<div class="empty" style="padding:20px;">No alerts</div>`;
+  } else {
+    html += `<div style="margin-bottom:20px;">`;
+    alerts.slice(0, 15).forEach(a => {
+      const alertClass = getAlertClass(a.alert);
+      html += `
+        <div class="alert-item" onclick="showDetail('${a.symbol}')" style="cursor:pointer;">
+          <span class="alert-symbol">${a.symbol}</span>
+          <span class="alert-tag ${alertClass}">${a.alert}</span>
+          <span style="color:#666;font-size:11px;">${a.signal}</span>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
 function renderTracker(el) {
   // Apply sorting to tracker data
   let sortedTracker = [...appData.tracker];
@@ -787,6 +817,8 @@ function renderTracker(el) {
   el.innerHTML = html;
 }
 
+
+
 function renderOI(el) {
   const { gainers, losers } = appData.oiMovers;
 
@@ -877,6 +909,8 @@ function renderOI(el) {
   el.innerHTML = html;
 }
 
+
+
 function renderBasis(el) {
   // Apply sorting
   let sortedBasis = [...appData.basisSummary];
@@ -964,6 +998,8 @@ function renderBasis(el) {
   el.innerHTML = html;
 }
 
+
+
 function renderBan(el) {
   const banList = appData.banList;
 
@@ -994,7 +1030,7 @@ function renderBan(el) {
         <span>Pattern</span>
       </div>
     `;
-    banList.forEach(item => {
+    sortedBan.forEach(item => {
       html += `
         <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
@@ -1011,6 +1047,8 @@ function renderBan(el) {
 
   el.innerHTML = html;
 }
+
+
 
 // ============================================
 // SYMBOL DETAIL MODAL
@@ -1110,7 +1148,6 @@ function filterTracker() {
     row.style.display = sym.includes(q) ? '' : 'none';
   });
 }
-
 
 // ============================================
 // DASHBOARD FILTERS
@@ -1288,6 +1325,7 @@ function applyBasisFilters() {
     row.style.display = show ? '' : 'none';
   });
 }
+
 
 // ============================================
 // INIT
