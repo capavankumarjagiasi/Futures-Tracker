@@ -28,10 +28,10 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .card-icon { font-size:28px; margin-bottom:6px; }
 .card-count { font-size:32px; font-weight:700; color:#fff; }
 .card-label { font-size:12px; color:#888; margin-top:4px; }
-.card.lb .card-count { color:#27ae60; }
+.card.lb .card-count { color:#ff6b35; }
 .card.sb .card-count { color:#ef5350; }
-.card.lu .card-count { color:#e67e22; }
-.card.sc .card-count { color:#3498db; }
+.card.lu .card-count { color:#42a5f5; }
+.card.sc .card-count { color:#66bb6a; }
 
 /* Filters */
 .filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
@@ -47,10 +47,10 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .table-row:hover { background:#1a1a3e; }
 .col-symbol { font-weight:600; color:#4fc3f7; }
 .col-signal { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; text-align:center; }
-.signal-LB { background:#27ae6020; color:#27ae60; }
+.signal-LB { background:#ff6b3520; color:#ff6b35; }
 .signal-SB { background:#ef535020; color:#ef5350; }
-.signal-LU { background:#e67e2220; color:#e67e22; }
-.signal-SC { background:#3498db20; color:#3498db; }
+.signal-LU { background:#42a5f520; color:#42a5f5; }
+.signal-SC { background:#66bb6a20; color:#66bb6a; }
 .col-basis { font-weight:600; }
 .basis-pos { color:#66bb6a; }
 .basis-neg { color:#ef5350; }
@@ -140,23 +140,12 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .source-info { font-size:11px; color:#666; }
 
 
-/* FORCE horizontal scroll */
+/* Table horizontal scrolling */
 .table-scroll {
-  overflow-x: auto !important;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
-  display: block;
-  position: relative;
 }
-.table-scroll > .table-wrap {
-  min-width: fit-content;
-}
-.table-scroll .table-header,
-.table-scroll .table-row {
-  min-width: max-content;
-}
-
-/* Table horizontal scrolling */
 .table-scroll::-webkit-scrollbar { height: 6px; }
 .table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
 .table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
@@ -213,6 +202,7 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   text-align: right;
 }
 
+
 /* Sticky table header */
 .table-wrap .table-header {
   position: sticky;
@@ -220,6 +210,16 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   z-index: 50;
   background: #0f3460;
 }
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  position: relative;
+}
+.table-scroll::-webkit-scrollbar { height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: #1a1a2e; }
+.table-scroll::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
+
 /* Responsive */
 @media(max-width:600px){
   .table-header, .table-row { font-size:11px; padding:8px 6px; }
@@ -281,58 +281,6 @@ const CONFIG = {
 let appData = null;
 let currentTab = 'dashboard';
 let dashboardFilter = 'all';
-
-// Sort state: { tab: { column: string, direction: 'asc'|'desc' } }
-let sortState = {};
-
-function getSortKey(tab) {
-  return sortState[tab] || { column: null, direction: 'asc' };
-}
-
-function setSortKey(tab, column) {
-  const current = getSortKey(tab);
-  if (current.column === column) {
-    sortState[tab] = { column: column, direction: current.direction === 'asc' ? 'desc' : 'asc' };
-  } else {
-    sortState[tab] = { column: column, direction: 'asc' };
-  }
-  render();
-}
-
-function sortData(data, tab, column, direction) {
-  if (!column) return data;
-  const sorted = [...data];
-  sorted.sort((a, b) => {
-    let av, bv;
-    switch(column) {
-      case 'symbol': av = a.symbol; bv = b.symbol; break;
-      case 'signal': av = a.signal; bv = b.signal; break;
-      case 'conv': av = a.conv_score !== null ? a.conv_score : -1; bv = b.conv_score !== null ? b.conv_score : -1; break;
-      case 'basis': av = a.basis_pct !== null ? a.basis_pct : 0; bv = b.basis_pct !== null ? b.basis_pct : 0; break;
-      case 'ltp': av = a.ltp !== null ? a.ltp : 0; bv = b.ltp !== null ? b.ltp : 0; break;
-      case 'oi': av = a.oi !== null ? a.oi : 0; bv = b.oi !== null ? b.oi : 0; break;
-      case 'oichg': av = a.oi_chg !== null ? a.oi_chg : 0; bv = b.oi_chg !== null ? b.oi_chg : 0; break;
-      case 'spot': av = a.spot !== null ? a.spot : 0; bv = b.spot !== null ? b.spot : 0; break;
-      case 'oipct': av = a.oi_5d_pct !== null ? a.oi_5d_pct : 0; bv = b.oi_5d_pct !== null ? b.oi_5d_pct : 0; break;
-      case 'pricechg': av = a.price_chg !== null ? a.price_chg : 0; bv = b.price_chg !== null ? b.price_chg : 0; break;
-      case 'fvdiff': av = a.fv_diff !== null ? a.fv_diff : 0; bv = b.fv_diff !== null ? b.fv_diff : 0; break;
-      case 'basis_abs': av = a.basis !== null ? a.basis : 0; bv = b.basis !== null ? b.basis : 0; break;
-      case 'expiry': av = a.expiry || 'Near'; bv = b.expiry || 'Near'; break;
-      default: av = 0; bv = 0;
-    }
-    if (typeof av === 'string') {
-      return direction === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-    }
-    return direction === 'asc' ? av - bv : bv - av;
-  });
-  return sorted;
-}
-
-function sortIndicator(column, tab) {
-  const s = getSortKey(tab);
-  if (s.column !== column) return '';
-  return s.direction === 'asc' ? ' ▲' : ' ▼';
-}
 
 // ============================================
 // DATA LOADING - NO GOOGLE DRIVE / NO OAUTH
@@ -518,15 +466,8 @@ function renderDashboard(el) {
   } else {
     displayItems = appData.signalItems[dashboardFilter] || [];
   }
-
-  // Apply sorting
-  const s = getSortKey('dashboard');
-  if (s.column) {
-    displayItems = sortData(displayItems, 'dashboard', s.column, s.direction);
-  } else {
-    // Default sort by conv_score desc, then OI change
-    displayItems.sort((a, b) => (b.conv_score - a.conv_score) || (b.oi_chg - a.oi_chg));
-  }
+  // Sort by conv_score desc, then OI change
+  displayItems.sort((a, b) => (b.conv_score - a.conv_score) || (b.oi_chg - a.oi_chg));
 
   const basisTotal = basisCats.dd.length + basisCats.d.length + basisCats.p.length + basisCats.pm.length + basisCats.dp.length;
 
@@ -660,75 +601,7 @@ function renderDashboard(el) {
   el.innerHTML = html;
 }
 
-
-
-  // Basis Summary Bar
-  html += `
-    <div class="section-title">Basis Summary</div>
-    <div class="basis-bar">
-      <div class="basis-seg dd" style="width:${basisTotal?(basisCats.dd.length/basisTotal*100):0}%">${basisCats.dd.length>0?basisCats.dd.length+' DD':''}</div>
-      <div class="basis-seg d" style="width:${basisTotal?(basisCats.d.length/basisTotal*100):0}%">${basisCats.d.length>0?basisCats.d.length+' D':''}</div>
-      <div class="basis-seg p" style="width:${basisTotal?(basisCats.p.length/basisTotal*100):0}%">${basisCats.p.length>0?basisCats.p.length+' P':''}</div>
-      <div class="basis-seg pm" style="width:${basisTotal?(basisCats.pm.length/basisTotal*100):0}%">${basisCats.pm.length>0?basisCats.pm.length+' Pm':''}</div>
-      <div class="basis-seg dp" style="width:${basisTotal?(basisCats.dp.length/basisTotal*100):0}%">${basisCats.dp.length>0?basisCats.dp.length+' DP':''}</div>
-    </div>
-    <div style="display:flex;gap:16px;font-size:11px;color:#888;margin-bottom:20px;flex-wrap:wrap;">
-      <span><span style="color:#c62828;">■</span> Deep Discount (&lt;-1%)</span>
-      <span><span style="color:#ef6c00;">■</span> Discount (-1% to 0)</span>
-      <span><span style="color:#546e7a;">■</span> Par (0)</span>
-      <span><span style="color:#0277bd;">■</span> Premium (0 to +1%)</span>
-      <span><span style="color:#2e7d32;">■</span> Deep Premium (&gt;+1%)</span>
-    </div>
-  `;
-
-  // Ban List
-  html += `<div class="section-title">Ban List</div>`;
-  if (banList.length === 0) {
-    html += `<div class="empty" style="padding:20px;">No securities banned</div>`;
-  } else {
-    html += `<div style="margin-bottom:20px;">`;
-    banList.forEach(item => {
-      html += `
-        <div class="ban-item" onclick="showDetail('${item.symbol}')" style="cursor:pointer;">
-          <span class="ban-badge">🚫 BANNED</span>
-          <span class="ban-symbol">${item.symbol}</span>
-          <span style="color:#888;font-size:12px;">OI: ${formatNumber(item.oi)} | LTP: ${item.ltp}</span>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-
-  // Top Alerts
-  html += `<div class="section-title">Top Alerts</div>`;
-  if (alerts.length === 0) {
-    html += `<div class="empty" style="padding:20px;">No alerts</div>`;
-  } else {
-    html += `<div style="margin-bottom:20px;">`;
-    alerts.slice(0, 15).forEach(a => {
-      const alertClass = getAlertClass(a.alert);
-      html += `
-        <div class="alert-item" onclick="showDetail('${a.symbol}')" style="cursor:pointer;">
-          <span class="alert-symbol">${a.symbol}</span>
-          <span class="alert-tag ${alertClass}">${a.alert}</span>
-          <span style="color:#666;font-size:11px;">${a.signal}</span>
-        </div>
-      `;
-    });
-    html += `</div>`;
-  }
-
-  el.innerHTML = html;
-}
-
 function renderTracker(el) {
-  // Apply sorting to tracker data
-  let sortedTracker = [...appData.tracker];
-  const s = getSortKey('tracker');
-  if (s.column) {
-    sortedTracker = sortData(sortedTracker, 'tracker', s.column, s.direction);
-  }
-
   let html = `
     <div class="refresh-bar">
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
@@ -779,22 +652,13 @@ function renderTracker(el) {
 
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px; cursor:pointer;">
-          <span onclick="setSortKey('tracker','symbol')">Symbol${sortIndicator('symbol','tracker')}</span>
-          <span onclick="setSortKey('tracker','signal')">Signal${sortIndicator('signal','tracker')}</span>
-          <span onclick="setSortKey('tracker','conv')">Conv★${sortIndicator('conv','tracker')}</span>
-          <span onclick="setSortKey('tracker','basis')">Basis%${sortIndicator('basis','tracker')}</span>
-          <span onclick="setSortKey('tracker','spot')">Spot${sortIndicator('spot','tracker')}</span>
-          <span onclick="setSortKey('tracker','ltp')">LTP${sortIndicator('ltp','tracker')}</span>
-          <span onclick="setSortKey('tracker','oi')">OI / Chg${sortIndicator('oi','tracker')}</span>
-          <span onclick="setSortKey('tracker','oipct')">5d OI%${sortIndicator('oipct','tracker')}</span>
-          <span onclick="setSortKey('tracker','expiry')">Exp${sortIndicator('expiry','tracker')}</span>
-          <span>Pattern</span>
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Exp</span><span>Pattern</span>
         </div>
         <div id="trackerRows">
   `;
 
-  sortedTracker.forEach(item => {
+  appData.tracker.forEach(item => {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
     html += `
@@ -817,19 +681,8 @@ function renderTracker(el) {
   el.innerHTML = html;
 }
 
-
-
 function renderOI(el) {
   const { gainers, losers } = appData.oiMovers;
-
-  // Apply sorting
-  let sortedGainers = [...gainers];
-  let sortedLosers = [...losers];
-  const s = getSortKey('oi');
-  if (s.column) {
-    sortedGainers = sortData(sortedGainers, 'oi', s.column, s.direction);
-    sortedLosers = sortData(sortedLosers, 'oi', s.column, s.direction);
-  }
 
   let html = `
     <div class="refresh-bar">
@@ -850,18 +703,12 @@ function renderOI(el) {
     <div class="section-title">🔥 OI Gainers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap" style="margin-bottom:24px;">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;">
-          <span onclick="setSortKey('oi','symbol')">Symbol${sortIndicator('symbol','oi')}</span>
-          <span onclick="setSortKey('oi','signal')">Signal${sortIndicator('signal','oi')}</span>
-          <span onclick="setSortKey('oi','conv')">Conv★${sortIndicator('conv','oi')}</span>
-          <span onclick="setSortKey('oi','oichg')">OI Chg${sortIndicator('oichg','oi')}</span>
-          <span onclick="setSortKey('oi','oipct')">5d OI%${sortIndicator('oipct','oi')}</span>
-          <span onclick="setSortKey('oi','pricechg')">Price Chg${sortIndicator('pricechg','oi')}</span>
-          <span>Alerts</span>
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
         </div>
   `;
 
-  sortedGainers.forEach(item => {
+  gainers.forEach(item => {
     html += `
         <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
@@ -880,18 +727,12 @@ function renderOI(el) {
     <div class="section-title">❄️ OI Losers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;">
-          <span onclick="setSortKey('oi','symbol')">Symbol${sortIndicator('symbol','oi')}</span>
-          <span onclick="setSortKey('oi','signal')">Signal${sortIndicator('signal','oi')}</span>
-          <span onclick="setSortKey('oi','conv')">Conv★${sortIndicator('conv','oi')}</span>
-          <span onclick="setSortKey('oi','oichg')">OI Chg${sortIndicator('oichg','oi')}</span>
-          <span onclick="setSortKey('oi','oipct')">5d OI%${sortIndicator('oipct','oi')}</span>
-          <span onclick="setSortKey('oi','pricechg')">Price Chg${sortIndicator('pricechg','oi')}</span>
-          <span>Alerts</span>
+        <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>OI Chg</span><span>5d OI%</span><span>Price Chg</span><span>Alerts</span>
         </div>
   `;
 
-  sortedLosers.forEach(item => {
+  losers.forEach(item => {
     html += `
         <div class="table-row oi-row" data-alerts="${(item.alerts || '').toLowerCase()}" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
@@ -909,16 +750,7 @@ function renderOI(el) {
   el.innerHTML = html;
 }
 
-
-
 function renderBasis(el) {
-  // Apply sorting
-  let sortedBasis = [...appData.basisSummary];
-  const s = getSortKey('basis');
-  if (s.column) {
-    sortedBasis = sortData(sortedBasis, 'basis', s.column, s.direction);
-  }
-
   let html = `
     <div class="refresh-bar">
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
@@ -957,19 +789,12 @@ function renderBasis(el) {
     <div class="section-title">⚖️ Basis Summary (Sorted by Basis %)</div>
     <div class="table-scroll">
       <div class="table-wrap">
-        <div class="table-header" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px; cursor:pointer;">
-          <span onclick="setSortKey('basis','symbol')">Symbol${sortIndicator('symbol','basis')}</span>
-          <span onclick="setSortKey('basis','basis')">Basis%${sortIndicator('basis','basis')}</span>
-          <span onclick="setSortKey('basis','conv')">Conv★${sortIndicator('conv','basis')}</span>
-          <span onclick="setSortKey('basis','basis_abs')">Basis${sortIndicator('basis_abs','basis')}</span>
-          <span onclick="setSortKey('basis','ltp')">LTP${sortIndicator('ltp','basis')}</span>
-          <span onclick="setSortKey('basis','spot')">Spot${sortIndicator('spot','basis')}</span>
-          <span onclick="setSortKey('basis','fvdiff')">FV Diff${sortIndicator('fvdiff','basis')}</span>
-          <span>Signal / Alerts</span>
+        <div class="table-header" style="grid-template-columns: 90px 70px 50px 80px 80px 100px 80px 1fr; min-width: 720px;">
+          <span>Symbol</span><span>Basis%</span><span>Conv★</span><span>Basis</span><span>LTP</span><span>Spot</span><span>FV Diff</span><span>Signal / Alerts</span>
         </div>
   `;
 
-  sortedBasis.forEach(item => {
+  appData.basisSummary.forEach(item => {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     let cat = 'p';
     const bp = item.basis_pct;
@@ -998,17 +823,8 @@ function renderBasis(el) {
   el.innerHTML = html;
 }
 
-
-
 function renderBan(el) {
   const banList = appData.banList;
-
-  // Apply sorting
-  let sortedBan = [...banList];
-  const s = getSortKey('ban');
-  if (s.column) {
-    sortedBan = sortData(sortedBan, 'ban', s.column, s.direction);
-  }
   let html = `
     <div class="refresh-bar">
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
@@ -1021,16 +837,11 @@ function renderBan(el) {
   } else {
     html += `<div class="table-scroll"><div class="table-wrap">`;
     html += `
-      <div class="table-header" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;">
-        <span onclick="setSortKey('ban','symbol')">Symbol${sortIndicator('symbol','ban')}</span>
-        <span>Status</span>
-        <span onclick="setSortKey('ban','oi')">OI${sortIndicator('oi','ban')}</span>
-        <span onclick="setSortKey('ban','ltp')">LTP${sortIndicator('ltp','ban')}</span>
-        <span onclick="setSortKey('ban','basis')">Basis%${sortIndicator('basis','ban')}</span>
-        <span>Pattern</span>
+      <div class="table-header" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px;">
+        <span>Symbol</span><span>Status</span><span>OI</span><span>LTP</span><span>Basis%</span><span>Pattern</span>
       </div>
     `;
-    sortedBan.forEach(item => {
+    banList.forEach(item => {
       html += `
         <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; min-width: 600px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
@@ -1048,8 +859,6 @@ function renderBan(el) {
   el.innerHTML = html;
 }
 
-
-
 // ============================================
 // SYMBOL DETAIL MODAL
 // ============================================
@@ -1059,7 +868,7 @@ function showDetail(symbol) {
 
   document.getElementById('modalSymbol').textContent = symbol;
 
-  const trendColors = { LB: '#27ae60', SB: '#c0392b', LU: '#e67e22', SC: '#3498db' };
+  const trendColors = { LB: '#27ae60', SB: '#c0392b', LU: '#e67e22', SC: '#9b59b6' };
   const trendLabels = { LB: '🔥 Long Buildup', SB: '🐻 Short Buildup', LU: '💧 Long Unwinding', SC: '⚡ Short Covering' };
 
   document.getElementById('modalBody').innerHTML = `
@@ -1149,6 +958,7 @@ function filterTracker() {
   });
 }
 
+
 // ============================================
 // DASHBOARD FILTERS
 // ============================================
@@ -1193,9 +1003,6 @@ function applyDashFilters() {
 // TRACKER FILTERS
 // ============================================
 let trackerPattern = 'all';
-let trackerAlert = 'all';
-let trackerBasisCat = 'all';
-let trackerExpiry = 'all';
 let trackerAlert = 'all';
 let trackerBasisCat = 'all';
 let trackerExpiry = 'all';
@@ -1325,7 +1132,6 @@ function applyBasisFilters() {
     row.style.display = show ? '' : 'none';
   });
 }
-
 
 // ============================================
 // INIT
