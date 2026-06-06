@@ -28,10 +28,10 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .card-icon { font-size:28px; margin-bottom:6px; }
 .card-count { font-size:32px; font-weight:700; color:#fff; }
 .card-label { font-size:12px; color:#888; margin-top:4px; }
-.card.lb .card-count { color:#ff6b35; }
+.card.lb .card-count { color:#27ae60; }
 .card.sb .card-count { color:#ef5350; }
 .card.lu .card-count { color:#42a5f5; }
-.card.sc .card-count { color:#66bb6a; }
+.card.sc .card-count { color:#f1c40f; }
 
 /* Filters */
 .filters { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
@@ -47,10 +47,10 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .table-row:hover { background:#1a1a3e; }
 .col-symbol { font-weight:600; color:#4fc3f7; }
 .col-signal { padding:3px 10px; border-radius:10px; font-size:11px; font-weight:600; text-align:center; }
-.signal-LB { background:#ff6b3520; color:#ff6b35; }
+.signal-LB { background:#27ae6020; color:#27ae60; }
 .signal-SB { background:#ef535020; color:#ef5350; }
 .signal-LU { background:#42a5f520; color:#42a5f5; }
-.signal-SC { background:#66bb6a20; color:#66bb6a; }
+.signal-SC { background:#f1c40f20; color:#f1c40f; }
 .col-basis { font-weight:600; }
 .basis-pos { color:#66bb6a; }
 .basis-neg { color:#ef5350; }
@@ -630,14 +630,6 @@ function renderTracker(el) {
       <button class="filter-pill" onclick="setTrackerAlert('Rev')">🔄Reversal</button>
     </div>
 
-    <!-- Expiry Filter -->
-    <div class="filter-pills" id="expiryFilter">
-      <span style="font-size:12px;color:#888;margin-right:4px;">Expiry:</span>
-      <button class="filter-pill active" onclick="setTrackerExpiry('all')">All</button>
-      <button class="filter-pill" onclick="setTrackerExpiry('Near')">Near</button>
-      <button class="filter-pill" onclick="setTrackerExpiry('Next')">Next</button>
-      <button class="filter-pill" onclick="setTrackerExpiry('Far')">Far</button>
-    </div>
 
     <!-- Discount/Premium Filter (Pills) -->
     <div class="filter-pills" id="basisFilter">
@@ -653,7 +645,7 @@ function renderTracker(el) {
     <div class="table-scroll">
       <div class="table-wrap">
         <div class="table-header" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px;">
-          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Exp</span><span>Pattern</span>
+          <span>Symbol</span><span>Signal</span><span>Conv★</span><span>Basis%</span><span>Spot</span><span>LTP</span><span>OI / Chg</span><span>5d OI%</span><span>Pattern</span>
         </div>
         <div id="trackerRows">
   `;
@@ -662,7 +654,7 @@ function renderTracker(el) {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
     html += `
-          <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" data-basis="${item.basis_pct !== null ? item.basis_pct : 0}" data-basiscat="${item.basis_pct !== null ? (item.basis_pct < -1 ? 'dd' : item.basis_pct < 0 ? 'd' : item.basis_pct === 0 ? 'p' : item.basis_pct <= 1 ? 'pm' : 'dp') : 'p'}" data-expiry="${item.expiry || 'Near'}" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 60px 1fr; min-width: 820px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
+          <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" data-signal="${item.signal}" data-alerts="${(item.alerts || '').toLowerCase()}" data-basis="${item.basis_pct !== null ? item.basis_pct : 0}" data-basiscat="${item.basis_pct !== null ? (item.basis_pct < -1 ? 'dd' : item.basis_pct < 0 ? 'd' : item.basis_pct === 0 ? 'p' : item.basis_pct <= 1 ? 'pm' : 'dp') : 'p'}" style="grid-template-columns: 90px 60px 50px 70px 80px 80px 100px 120px 1fr; min-width: 760px; cursor:pointer;" onclick="showDetail('${item.symbol}')">
             <span class="col-symbol">${item.symbol}</span>
             <span class="col-signal signal-${item.signal}">${item.signal}</span>
             <span style="font-weight:700;color:#f0c040;text-align:center;">${item.conv_score !== null ? item.conv_score : '-'}</span>
@@ -671,7 +663,6 @@ function renderTracker(el) {
             <span>${item.ltp !== null ? item.ltp.toFixed(1) : '-'}</span>
             <span class="col-oi ${oiClass}">${formatNumber(item.oi)}<br><span class="oi-chg">${item.oi_chg>=0?'▲':'▼'} ${formatNumber(Math.abs(item.oi_chg))}</span></span>
             <span>${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1)+'%' : '-'}</span>
-            <span style="font-size:10px;color:#888;text-align:center;">${item.expiry || 'Near'}</span>
             <span class="col-alerts">${item.pattern || '-'}</span>
           </div>
         `;
@@ -689,9 +680,17 @@ function renderOI(el) {
       <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
     </div>
 
+    <!-- Gainers/Losers Toggle -->
+    <div class="filter-pills" id="oiToggleFilter">
+      <span style="font-size:12px;color:#888;margin-right:4px;">Show:</span>
+      <button class="filter-pill active" onclick="setOISection('all')">All</button>
+      <button class="filter-pill" onclick="setOISection('gainers')">🔥 Gainers</button>
+      <button class="filter-pill" onclick="setOISection('losers')">❄️ Losers</button>
+    </div>
+
     <!-- Alert Filter -->
     <div class="filter-pills" id="oiAlertFilter">
-      <span style="font-size:12px;color:#888;margin-right:4px;">Filter:</span>
+      <span style="font-size:12px;color:#888;margin-right:4px;">Alert:</span>
       <button class="filter-pill active" onclick="setOIAlert('all')">All</button>
       <button class="filter-pill" onclick="setOIAlert('Hi Disc')">🔻Hi Disc</button>
       <button class="filter-pill" onclick="setOIAlert('Squeeze')">🚀Squeeze</button>
@@ -700,7 +699,7 @@ function renderOI(el) {
       <button class="filter-pill" onclick="setOIAlert('Rev')">🔄Reversal</button>
     </div>
 
-    <div class="section-title">🔥 OI Gainers (Top 25)</div>
+    <div class="section-title oi-section" data-section="gainers">🔥 OI Gainers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap" style="margin-bottom:24px;">
         <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
@@ -724,7 +723,7 @@ function renderOI(el) {
   html += `</div></div>`;
 
   html += `
-    <div class="section-title">❄️ OI Losers (Top 25)</div>
+    <div class="section-title oi-section" data-section="losers">❄️ OI Losers (Top 25)</div>
     <div class="table-scroll">
       <div class="table-wrap">
         <div class="table-header" style="grid-template-columns: 90px 60px 50px 80px 100px 80px 1fr; min-width: 660px;">
@@ -868,7 +867,7 @@ function showDetail(symbol) {
 
   document.getElementById('modalSymbol').textContent = symbol;
 
-  const trendColors = { LB: '#27ae60', SB: '#c0392b', LU: '#e67e22', SC: '#9b59b6' };
+  const trendColors = { LB: '#27ae60', SB: '#ef5350', LU: '#42a5f5', SC: '#f1c40f' };
   const trendLabels = { LB: '🔥 Long Buildup', SB: '🐻 Short Buildup', LU: '💧 Long Unwinding', SC: '⚡ Short Covering' };
 
   document.getElementById('modalBody').innerHTML = `
@@ -1005,7 +1004,6 @@ function applyDashFilters() {
 let trackerPattern = 'all';
 let trackerAlert = 'all';
 let trackerBasisCat = 'all';
-let trackerExpiry = 'all';
 
 function setTrackerPattern(pattern) {
   trackerPattern = pattern;
@@ -1027,14 +1025,6 @@ function setTrackerAlert(alert) {
 
 
 
-function setTrackerExpiry(expiry) {
-  trackerExpiry = expiry;
-  document.querySelectorAll('#expiryFilter .filter-pill').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent === (expiry === 'all' ? 'All' : expiry));
-  });
-  applyTrackerFilters();
-}
-
 function setTrackerBasis(cat) {
   trackerBasisCat = cat;
   const map = { 'all': 'All', 'dd': 'Deep Disc', 'd': 'Discount', 'p': 'Parity', 'pm': 'Premium', 'dp': 'Deep Prem' };
@@ -1050,12 +1040,10 @@ function applyTrackerFilters() {
     const signal = row.getAttribute('data-signal');
     const alerts = row.getAttribute('data-alerts') || '';
     const basisCat = row.getAttribute('data-basiscat') || 'p';
-    const expiry = row.getAttribute('data-expiry') || 'Near';
 
     let show = true;
     if (trackerPattern !== 'all' && signal !== trackerPattern) show = false;
     if (trackerAlert !== 'all' && !alerts.includes(trackerAlert.toLowerCase())) show = false;
-    if (trackerExpiry !== 'all' && expiry !== trackerExpiry) show = false;
     if (trackerBasisCat !== 'all' && basisCat !== trackerBasisCat) show = false;
     row.style.display = show ? '' : 'none';
   });
@@ -1065,6 +1053,35 @@ function applyTrackerFilters() {
 // OI FILTERS
 // ============================================
 let oiAlertFilter = 'all';
+let oiSectionFilter = 'all';
+
+function setOISection(section) {
+  oiSectionFilter = section;
+  document.querySelectorAll('#oiToggleFilter .filter-pill').forEach(btn => {
+    const btnText = btn.textContent.replace(/[🔥❄️]/g, '').trim().toLowerCase();
+    const secMap = { 'all': 'all', 'gainers': 'gainers', 'losers': 'losers' };
+    btn.classList.toggle('active', btnText === secMap[section]);
+  });
+  applyOISectionFilter();
+}
+
+function applyOISectionFilter() {
+  // Show/hide entire sections
+  document.querySelectorAll('.oi-section').forEach(title => {
+    const sec = title.getAttribute('data-section');
+    let show = true;
+    if (oiSectionFilter !== 'all' && sec !== oiSectionFilter) show = false;
+
+    // Hide/show the title and its next sibling table-scroll
+    title.style.display = show ? '' : 'none';
+    const tableScroll = title.nextElementSibling;
+    if (tableScroll && tableScroll.classList.contains('table-scroll')) {
+      tableScroll.style.display = show ? '' : 'none';
+    }
+  });
+  // Also apply alert filters within visible sections
+  applyOIFilters();
+}
 
 function setOIAlert(alert) {
   oiAlertFilter = alert;
@@ -1083,6 +1100,18 @@ function applyOIFilters() {
     if (oiAlertFilter !== 'all' && !alerts.includes(oiAlertFilter.toLowerCase())) show = false;
     row.style.display = show ? '' : 'none';
   });
+  // If section filter is active, ensure rows in hidden sections are also hidden
+  if (oiSectionFilter !== 'all') {
+    document.querySelectorAll('.oi-section').forEach(title => {
+      const sec = title.getAttribute('data-section');
+      if (sec !== oiSectionFilter) {
+        const tableScroll = title.nextElementSibling;
+        if (tableScroll) {
+          tableScroll.querySelectorAll('.oi-row').forEach(row => row.style.display = 'none');
+        }
+      }
+    });
+  }
 }
 
 // ============================================
