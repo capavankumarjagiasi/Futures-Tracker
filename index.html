@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NSE F&O Tracker</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTlNFIEYmTyBUcmFja2VyIiwic2hvcnRfbmFtZSI6IkZ1dHVyZXNUcmFja2VyIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMxYTFhMmUiLCJ0aGVtZV9jb2xvciI6IiMxYTFhMmUifQ==">
+<link rel="manifest" href="manifest.json">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e0e0e0; min-height:100vh; }
@@ -12,6 +12,7 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .header h1 { font-size:18px; color:#4fc3f7; font-weight:600; }
 .sync-badge { font-size:11px; color:#81c784; background:#1b5e20; padding:3px 10px; border-radius:12px; }
 .sync-badge.pending { color:#ffb74d; background:#5d4037; }
+.sync-badge.error { color:#ef5350; background:#4a0000; }
 .nav { display:flex; gap:8px; padding:12px 16px; overflow-x:auto; background:#16213e; border-bottom:1px solid #2a2a4a; }
 .nav-btn { padding:8px 16px; border:none; border-radius:20px; background:#2a2a4a; color:#b0b0c0; font-size:13px; cursor:pointer; white-space:nowrap; transition:all 0.2s; }
 .nav-btn:hover { background:#3a3a5a; }
@@ -22,7 +23,7 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 /* Dashboard Cards */
 .cards-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
 @media(min-width:768px){ .cards-grid { grid-template-columns:repeat(4,1fr); } }
-.card { background:#16213e; border-radius:12px; padding:16px; text-align:center; border:1px solid #2a2a4a; transition:transform 0.2s; }
+.card { background:#16213e; border-radius:12px; padding:16px; text-align:center; border:1px solid #2a2a4a; transition:transform 0.2s; cursor:pointer; }
 .card:hover { transform:translateY(-2px); border-color:#4fc3f7; }
 .card-icon { font-size:28px; margin-bottom:6px; }
 .card-count { font-size:32px; font-weight:700; color:#fff; }
@@ -80,6 +81,9 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .ban-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
 .ban-badge { background:#c62828; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
 .ban-symbol { font-weight:600; color:#ef5350; }
+.ban-out { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border-left:3px solid #2e7d32; }
+.ban-out-badge { background:#2e7d32; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+.ban-out-symbol { font-weight:600; color:#66bb6a; }
 
 /* Alerts List */
 .alert-item { display:flex; align-items:center; gap:12px; padding:10px 12px; background:#16213e; border-radius:8px; margin-bottom:6px; border:1px solid #2a2a4a; }
@@ -105,12 +109,48 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
 .search-box { width:100%; padding:10px 14px; background:#16213e; border:1px solid #2a2a4a; border-radius:8px; color:#e0e0e0; font-size:14px; margin-bottom:16px; }
 .search-box:focus { outline:none; border-color:#4fc3f7; }
 .search-box::placeholder { color:#666; }
+
+/* Select */
+.select-box { padding:8px 12px; background:#16213e; border:1px solid #2a2a4a; border-radius:8px; color:#e0e0e0; font-size:13px; margin-bottom:12px; }
+.select-box:focus { outline:none; border-color:#4fc3f7; }
+
+/* OI Tabs */
+.oi-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.oi-tab { flex:1; padding:10px; border:none; border-radius:8px; background:#16213e; color:#b0b0c0; font-size:13px; font-weight:600; cursor:pointer; border:1px solid #2a2a4a; }
+.oi-tab.active { background:#4fc3f7; color:#1a1a2e; }
+
+/* Detail Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:200; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:#16213e; border-radius:16px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto; border:1px solid #2a2a4a; }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid #2a2a4a; }
+.modal-header h2 { font-size:18px; color:#4fc3f7; }
+.modal-close { background:none; border:none; color:#888; font-size:24px; cursor:pointer; }
+.modal-body { padding:16px; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+.detail-item { background:#1a1a3e; border-radius:10px; padding:12px; }
+.detail-label { font-size:11px; color:#888; margin-bottom:4px; }
+.detail-value { font-size:18px; font-weight:700; }
+.detail-signal { grid-column:1/-1; text-align:center; padding:14px; border-radius:12px; font-size:18px; font-weight:700; margin-bottom:8px; }
+
+/* Manual refresh */
+.refresh-bar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.refresh-btn { padding:8px 16px; background:#0f3460; color:#4fc3f7; border:1px solid #2a2a4a; border-radius:8px; font-size:12px; cursor:pointer; }
+.refresh-btn:hover { background:#1a4a7a; }
+.source-info { font-size:11px; color:#666; }
+
+/* Responsive */
+@media(max-width:600px){
+  .table-header, .table-row { font-size:11px; padding:8px 6px; }
+  .col-symbol { font-size:12px; }
+  .card-count { font-size:24px; }
+}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>📊 NSE F&O Tracker</h1>
-  <span class="sync-badge" id="syncBadge">⏳ Loading...</span>
+  <span class="sync-badge pending" id="syncBadge">⏳ Loading...</span>
 </div>
 <div class="nav">
   <button class="nav-btn active" onclick="showTab('dashboard')">📈 Dashboard</button>
@@ -123,14 +163,34 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   <div class="loading"><div class="spinner"></div>Loading data...</div>
 </div>
 
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modalSymbol">Symbol</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
 <script>
 // ============================================
-// CONFIGURATION
+// CONFIGURATION - EDIT THESE URLS
 // ============================================
 const CONFIG = {
-  // Primary: Load from JSON file (same directory or GitHub raw URL)
-  jsonUrl: 'fo_snapshot.json',
-  // Date for display
+  // PRIMARY: GitHub raw URL (RECOMMENDED - same domain, no CORS, no API keys)
+  // Replace with your actual raw GitHub URL after pushing JSON to repo
+  githubRawUrl: 'https://raw.githubusercontent.com/capavankumarjagiasi/Futures-Tracker/main/fo_snapshot.json',
+  
+  // FALLBACK: jsonbin.io (if you prefer external hosting)
+  // Replace YOUR_BIN_ID with your actual bin ID
+  jsonbinUrl: 'https://api.jsonbin.io/v3/b/YOUR_BIN_ID/latest',
+  
+  // Set to 'github' or 'jsonbin' to choose primary source
+  primarySource: 'github',
+  
+  // Date for display fallback
   dateFmt: '05-06-2026'
 };
 
@@ -142,7 +202,7 @@ let currentTab = 'dashboard';
 let dashboardFilter = 'all';
 
 // ============================================
-// DATA LOADING
+// DATA LOADING - NO GOOGLE DRIVE / NO OAUTH
 // ============================================
 async function loadData() {
   const badge = document.getElementById('syncBadge');
@@ -150,9 +210,9 @@ async function loadData() {
   badge.textContent = '⏳ Loading...';
 
   try {
-    // Try multiple sources
     let data = null;
     let source = '';
+    let errors = [];
 
     // 1. Try localStorage cache first for instant display
     const cached = localStorage.getItem('fo_snapshot_cache');
@@ -161,27 +221,50 @@ async function loadData() {
       try {
         data = JSON.parse(cached);
         source = 'cache';
-        // Show cached data immediately while fetching fresh
         appData = processData(data);
         render();
       } catch(e) { console.log('Cache parse failed'); }
     }
 
-    // 2. Try fetching fresh JSON
-    try {
-      const resp = await fetch(CONFIG.jsonUrl + '?t=' + Date.now(), { cache: 'no-store' });
-      if (resp.ok) {
-        data = await resp.json();
-        source = 'live';
-        localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
-        localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+    // 2. Fetch fresh data from primary source
+    const urlsToTry = [];
+    if (CONFIG.primarySource === 'github') {
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+    } else {
+      urlsToTry.push({ url: CONFIG.jsonbinUrl, name: 'jsonbin' });
+      urlsToTry.push({ url: CONFIG.githubRawUrl + '?t=' + Date.now(), name: 'GitHub' });
+    }
+
+    for (const src of urlsToTry) {
+      if (data && source === 'live') break; // Already got live data
+      try {
+        console.log('Trying:', src.name, src.url);
+        const resp = await fetch(src.url, { 
+          cache: 'no-store',
+          headers: src.name === 'jsonbin' ? { 'X-Master-Key': '' } : {} // Add jsonbin key if needed
+        });
+        if (resp.ok) {
+          let raw = await resp.json();
+          // jsonbin.io wraps data in { record: {...}, metadata: {...} }
+          if (src.name === 'jsonbin' && raw.record) raw = raw.record;
+          data = raw;
+          source = 'live';
+          localStorage.setItem('fo_snapshot_cache', JSON.stringify(data));
+          localStorage.setItem('fo_snapshot_time', new Date().toISOString());
+          console.log('Loaded from:', src.name);
+          break;
+        } else {
+          errors.push(`${src.name}: HTTP ${resp.status}`);
+        }
+      } catch(e) {
+        errors.push(`${src.name}: ${e.message}`);
+        console.log(src.name, 'failed:', e.message);
       }
-    } catch(e) {
-      console.log('Primary fetch failed:', e);
     }
 
     if (!data && !appData) {
-      throw new Error('No data available');
+      throw new Error('No data available from any source. Errors: ' + errors.join('; '));
     }
 
     if (data) {
@@ -189,20 +272,24 @@ async function loadData() {
     }
 
     badge.className = 'sync-badge';
-    badge.textContent = '✅ Synced ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
+    const srcLabel = source === 'cache' ? 'Cached' : (CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin');
+    badge.textContent = '✅ ' + srcLabel + ' ' + (appData?.meta?.date_fmt || CONFIG.dateFmt);
     render();
 
   } catch(err) {
     console.error('Load error:', err);
-    badge.className = 'sync-badge pending';
+    badge.className = 'sync-badge error';
     badge.textContent = '❌ Failed';
     if (!appData) {
       document.getElementById('content').innerHTML = `
         <div class="empty">
           <div style="font-size:48px;margin-bottom:16px;">📂</div>
           <p>Unable to load data.</p>
-          <p style="color:#666;margin-top:8px;">Please ensure <code>fo_snapshot.json</code> is in the same directory.</p>
+          <p style="color:#666;margin-top:8px;">Please ensure data file is accessible.</p>
           <p style="color:#666;margin-top:8px;font-size:12px;">${err.message}</p>
+          <div style="margin-top:16px;">
+            <button class="refresh-btn" onclick="loadData()">🔄 Retry</button>
+          </div>
         </div>`;
     }
   }
@@ -254,11 +341,11 @@ function processData(raw) {
     return pa - pb || a.symbol.localeCompare(b.symbol);
   });
 
-  // Ban list
+  // Ban list - from futures_tracker where ban_status is 'banned'
   const banList = tracker.filter(i => i.ban_status === 'banned');
 
   return {
-    meta: raw.meta,
+    meta: raw.meta || {},
     tracker,
     signalCounts,
     signalItems,
@@ -304,24 +391,30 @@ function renderDashboard(el) {
   const basisTotal = basisCats.dd.length + basisCats.d.length + basisCats.p.length + basisCats.pm.length + basisCats.dp.length;
 
   let html = `
+    <!-- Refresh Bar -->
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
+      <span class="source-info">Source: ${CONFIG.primarySource === 'github' ? 'GitHub' : 'jsonbin.io'}</span>
+    </div>
+
     <!-- Summary Cards -->
     <div class="cards-grid">
-      <div class="card lb" onclick="setFilter('LB')" style="cursor:pointer;">
+      <div class="card lb" onclick="setFilter('LB')">
         <div class="card-icon">🔥</div>
         <div class="card-count">${signalCounts.LB}</div>
         <div class="card-label">Long Buildup</div>
       </div>
-      <div class="card sb" onclick="setFilter('SB')" style="cursor:pointer;">
+      <div class="card sb" onclick="setFilter('SB')">
         <div class="card-icon">🐻</div>
         <div class="card-count">${signalCounts.SB}</div>
         <div class="card-label">Short Buildup</div>
       </div>
-      <div class="card lu" onclick="setFilter('LU')" style="cursor:pointer;">
+      <div class="card lu" onclick="setFilter('LU')">
         <div class="card-icon">💧</div>
         <div class="card-count">${signalCounts.LU}</div>
         <div class="card-label">Long Unwinding</div>
       </div>
-      <div class="card sc" onclick="setFilter('SC')" style="cursor:pointer;">
+      <div class="card sc" onclick="setFilter('SC')">
         <div class="card-icon">⚡</div>
         <div class="card-count">${signalCounts.SC}</div>
         <div class="card-label">Short Covering</div>
@@ -352,7 +445,7 @@ function renderDashboard(el) {
       const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
       const oiArrow = (item.oi_chg || 0) >= 0 ? '▲' : '▼';
       html += `
-        <div class="table-row" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr;">
+        <div class="table-row" style="grid-template-columns: 80px 60px 70px 80px 80px 100px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol">${item.symbol}</span>
           <span class="col-signal signal-${item.signal}">${item.signal}</span>
           <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
@@ -393,7 +486,7 @@ function renderDashboard(el) {
     html += `<div style="margin-bottom:20px;">`;
     banList.forEach(item => {
       html += `
-        <div class="ban-item">
+        <div class="ban-item" onclick="showDetail('${item.symbol}')" style="cursor:pointer;">
           <span class="ban-badge">🚫 BANNED</span>
           <span class="ban-symbol">${item.symbol}</span>
           <span style="color:#888;font-size:12px;">OI: ${formatNumber(item.oi)} | LTP: ${item.ltp}</span>
@@ -412,7 +505,7 @@ function renderDashboard(el) {
     alerts.slice(0, 15).forEach(a => {
       const alertClass = getAlertClass(a.alert);
       html += `
-        <div class="alert-item">
+        <div class="alert-item" onclick="showDetail('${a.symbol}')" style="cursor:pointer;">
           <span class="alert-symbol">${a.symbol}</span>
           <span class="alert-tag ${alertClass}">${a.alert}</span>
           <span style="color:#666;font-size:11px;">${a.signal}</span>
@@ -427,6 +520,10 @@ function renderDashboard(el) {
 
 function renderTracker(el) {
   let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+      <span class="source-info">${appData.tracker.length} symbols</span>
+    </div>
     <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search symbol..." oninput="filterTracker()">
     <div class="table-wrap">
       <div class="table-header" style="grid-template-columns: 90px 60px 70px 80px 80px 100px 120px 1fr;">
@@ -439,7 +536,7 @@ function renderTracker(el) {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     const oiClass = (item.oi_chg || 0) >= 0 ? 'oi-up' : 'oi-down';
     html += `
-      <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" style="grid-template-columns: 90px 60px 70px 80px 80px 100px 120px 1fr;">
+      <div class="table-row tracker-row" data-symbol="${item.symbol.toLowerCase()}" style="grid-template-columns: 90px 60px 70px 80px 80px 100px 120px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
         <span class="col-symbol">${item.symbol}</span>
         <span class="col-signal signal-${item.signal}">${item.signal}</span>
         <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
@@ -460,6 +557,9 @@ function renderOI(el) {
   const { gainers, losers } = appData.oiMovers;
 
   let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    </div>
     <div class="section-title">🔥 OI Gainers (Top 25)</div>
     <div class="table-wrap" style="margin-bottom:24px;">
       <div class="table-header" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
@@ -469,7 +569,7 @@ function renderOI(el) {
 
   gainers.forEach(item => {
     html += `
-      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
         <span class="col-symbol">${item.symbol}</span>
         <span class="col-signal signal-${item.signal}">${item.signal}</span>
         <span class="oi-up">▲ ${formatNumber(item.oi_chg)}</span>
@@ -491,7 +591,7 @@ function renderOI(el) {
 
   losers.forEach(item => {
     html += `
-      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr;">
+      <div class="table-row" style="grid-template-columns: 90px 60px 80px 100px 80px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
         <span class="col-symbol">${item.symbol}</span>
         <span class="col-signal signal-${item.signal}">${item.signal}</span>
         <span class="oi-down">▼ ${formatNumber(Math.abs(item.oi_chg))}</span>
@@ -508,6 +608,10 @@ function renderOI(el) {
 
 function renderBasis(el) {
   let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+      <span class="source-info">${appData.basisSummary.length} items</span>
+    </div>
     <div class="section-title">⚖️ Basis Summary (Sorted by Basis %)</div>
     <div class="table-wrap">
       <div class="table-header" style="grid-template-columns: 90px 70px 80px 80px 100px 80px 1fr;">
@@ -518,7 +622,7 @@ function renderBasis(el) {
   appData.basisSummary.forEach(item => {
     const basisClass = (item.basis_pct || 0) >= 0 ? 'basis-pos' : 'basis-neg';
     html += `
-      <div class="table-row" style="grid-template-columns: 90px 70px 80px 80px 100px 80px 1fr;">
+      <div class="table-row" style="grid-template-columns: 90px 70px 80px 80px 100px 80px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
         <span class="col-symbol">${item.symbol}</span>
         <span class="col-basis ${basisClass}">${item.basis_pct !== null ? item.basis_pct.toFixed(2) : '-'}</span>
         <span>${item.basis !== null ? item.basis.toFixed(1) : '-'}</span>
@@ -536,7 +640,12 @@ function renderBasis(el) {
 
 function renderBan(el) {
   const banList = appData.banList;
-  let html = `<div class="section-title">🚫 Banned Securities</div>`;
+  let html = `
+    <div class="refresh-bar">
+      <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    </div>
+    <div class="section-title">🚫 Banned Securities</div>
+  `;
 
   if (banList.length === 0) {
     html += `<div class="empty" style="padding:40px;">No securities currently banned</div>`;
@@ -549,7 +658,7 @@ function renderBan(el) {
     `;
     banList.forEach(item => {
       html += `
-        <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr;">
+        <div class="table-row" style="grid-template-columns: 120px 80px 100px 80px 80px 1fr; cursor:pointer;" onclick="showDetail('${item.symbol}')">
           <span class="col-symbol" style="color:#ef5350;">${item.symbol}</span>
           <span style="color:#ef5350;font-weight:600;">🚫 BANNED</span>
           <span>${formatNumber(item.oi)}</span>
@@ -566,10 +675,50 @@ function renderBan(el) {
 }
 
 // ============================================
+// SYMBOL DETAIL MODAL
+// ============================================
+function showDetail(symbol) {
+  const item = appData.tracker.find(x => x.symbol === symbol);
+  if (!item) return;
+
+  document.getElementById('modalSymbol').textContent = symbol;
+
+  const trendColors = { LB: '#27ae60', SB: '#c0392b', LU: '#e67e22', SC: '#9b59b6' };
+  const trendLabels = { LB: '🔥 Long Buildup', SB: '🐻 Short Buildup', LU: '💧 Long Unwinding', SC: '⚡ Short Covering' };
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-signal" style="background:${trendColors[item.signal] || '#5a6a7a'}20; color:${trendColors[item.signal] || '#fff'}">
+        ${trendLabels[item.signal] || '—'}
+      </div>
+      <div class="detail-item"><div class="detail-label">Spot Price</div><div class="detail-value">₹${item.spot !== null ? item.spot.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Fut Price</div><div class="detail-value">₹${item.ltp !== null ? item.ltp.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Basis %</div><div class="detail-value" style="color:${item.basis_pct > 0 ? '#66bb6a' : '#ef5350'}">${item.basis_pct !== null ? (item.basis_pct >= 0 ? '+' : '') + item.basis_pct.toFixed(2) + '%' : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Fair Value</div><div class="detail-value">₹${item.fair_value !== null ? item.fair_value.toLocaleString('en-IN', {maximumFractionDigits:2}) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">FV Diff</div><div class="detail-value" style="color:${(item.fv_diff||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.fv_diff !== null ? (item.fv_diff >= 0 ? '+' : '') + item.fv_diff.toFixed(2) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Conv★</div><div class="detail-value">${item.conv_score !== null ? item.conv_score : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Open Interest</div><div class="detail-value">${formatNumber(item.oi)}</div></div>
+      <div class="detail-item"><div class="detail-label">OI Change</div><div class="detail-value" style="color:${(item.oi_chg||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.oi_chg !== null ? (item.oi_chg >= 0 ? '+' : '') + formatNumber(item.oi_chg) : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">OI 5d %</div><div class="detail-value">${item.oi_5d_pct !== null ? item.oi_5d_pct.toFixed(1) + '%' : '—'}</div></div>
+      <div class="detail-item"><div class="detail-label">Price Chg</div><div class="detail-value" style="color:${(item.price_chg||0) >= 0 ? '#66bb6a' : '#ef5350'}">${item.price_chg !== null ? (item.price_chg >= 0 ? '+' : '') + item.price_chg.toFixed(1) : '—'}</div></div>
+    </div>
+    ${item.pattern && item.pattern !== '—' ? `<div style="margin-bottom:12px"><div style="font-size:11px;color:#888;margin-bottom:4px;">Pattern</div><div style="font-size:16px;font-weight:600">${item.pattern}</div></div>` : ''}
+    ${item.alerts ? `<div><div style="font-size:11px;color:#888;margin-bottom:4px;">Alerts</div><div style="font-size:14px;color:#ccc;line-height:1.6">${renderAlerts(item.alerts, '')}</div></div>` : ''}
+  `;
+
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+// ============================================
 // HELPERS
 // ============================================
 function formatNumber(n) {
   if (n === null || n === undefined) return '-';
+  if (Math.abs(n) >= 10000000) return (n/10000000).toFixed(1) + 'Cr';
   if (Math.abs(n) >= 100000) return (n/100000).toFixed(1) + 'L';
   if (Math.abs(n) >= 1000) return (n/1000).toFixed(1) + 'K';
   return n.toString();
@@ -578,7 +727,8 @@ function formatNumber(n) {
 function renderAlerts(alerts, pattern) {
   let html = '';
   if (pattern && pattern !== '↓→▼→▲' && pattern !== '↑→▼→↓' && pattern !== '▼→▲→▼' && 
-      pattern !== 'SC×2' && pattern !== 'LB×2' && pattern !== 'LU×2' && pattern !== 'SB×2') {
+      pattern !== 'SC×2' && pattern !== 'LB×2' && pattern !== 'LU×2' && pattern !== 'SB×2' &&
+      pattern !== '▲→▲→↑' && pattern !== '▼→▼→↓' && pattern !== '↑→↑→↓' && pattern !== '↓→↓→↑') {
     html += `<span style="color:#888;margin-right:4px;">${pattern}</span>`;
   }
   if (alerts && alerts.trim()) {
