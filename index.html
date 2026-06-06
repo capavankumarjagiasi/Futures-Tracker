@@ -226,6 +226,36 @@ body { font-family:'Segoe UI',system-ui,sans-serif; background:#1a1a2e; color:#e
   .col-symbol { font-size:12px; }
   .card-count { font-size:24px; }
 }
+
+/* Sortable table headers */
+.table-header span {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 14px;
+}
+.table-header span:hover {
+  color: #4fc3f7;
+}
+.table-header span.sort-asc::after,
+.table-header span.sort-desc::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.table-header span.sort-asc::after {
+  border-bottom: 5px solid #4fc3f7;
+}
+.table-header span.sort-desc::after {
+  border-top: 5px solid #4fc3f7;
+}
+
 </style>
 </head>
 <body>
@@ -599,6 +629,7 @@ function renderDashboard(el) {
   }
 
   el.innerHTML = html;
+  initTableSorting();
 }
 
 function renderTracker(el) {
@@ -670,6 +701,7 @@ function renderTracker(el) {
 
   html += `</div></div></div>`;
   el.innerHTML = html;
+  initTableSorting();
 }
 
 function renderOI(el) {
@@ -747,6 +779,7 @@ function renderOI(el) {
   html += `</div></div>`;
 
   el.innerHTML = html;
+  initTableSorting();
 }
 
 function renderBasis(el) {
@@ -820,6 +853,7 @@ function renderBasis(el) {
   html += `</div></div>`;
 
   el.innerHTML = html;
+  initTableSorting();
 }
 
 function renderBan(el) {
@@ -856,6 +890,7 @@ function renderBan(el) {
   }
 
   el.innerHTML = html;
+  initTableSorting();
 }
 
 // ============================================
@@ -895,6 +930,129 @@ function showDetail(symbol) {
 
 function closeModal() {
   document.getElementById('detailModal').classList.remove('active');
+}
+
+
+// ============================================
+// TABLE SORTING
+// ============================================
+let tableSortState = {}; // tableId -> { colIndex, direction }
+
+function initTableSorting() {
+  // Find all table-wrap containers and attach sort handlers
+  document.querySelectorAll('.table-wrap').forEach((tableWrap, tableIndex) => {
+    const headerRow = tableWrap.querySelector('.table-header');
+    if (!headerRow) return;
+
+    const headers = headerRow.querySelectorAll('span');
+    headers.forEach((header, colIndex) => {
+      // Skip if already has click handler (check by data attribute)
+      if (header.hasAttribute('data-sortable')) return;
+
+      header.setAttribute('data-sortable', 'true');
+      header.setAttribute('data-col', colIndex);
+      header.setAttribute('data-table', tableIndex);
+      header.style.cursor = 'pointer';
+
+      header.addEventListener('click', function() {
+        sortTable(tableWrap, colIndex, this);
+      });
+    });
+  });
+}
+
+function sortTable(tableWrap, colIndex, headerEl) {
+  const tableId = tableWrap.getAttribute('id') || 'table_' + Math.random().toString(36).substr(2, 9);
+  if (!tableWrap.getAttribute('id')) tableWrap.setAttribute('id', tableId);
+
+  // Get current sort state for this table
+  let currentSort = tableSortState[tableId] || { colIndex: -1, direction: 'desc' };
+
+  // Determine new direction: if same column, toggle; if new column, start desc
+  let newDirection;
+  if (currentSort.colIndex === colIndex) {
+    newDirection = currentSort.direction === 'desc' ? 'asc' : 'desc';
+  } else {
+    newDirection = 'desc';
+  }
+
+  tableSortState[tableId] = { colIndex: colIndex, direction: newDirection };
+
+  // Update header visual indicators
+  const headerRow = tableWrap.querySelector('.table-header');
+  headerRow.querySelectorAll('span').forEach(h => {
+    h.classList.remove('sort-asc', 'sort-desc');
+  });
+  headerEl.classList.add(newDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+
+  // Get all data rows (skip header)
+  const rows = Array.from(tableWrap.querySelectorAll('.table-row'));
+
+  // Sort rows
+  rows.sort((a, b) => {
+    let aVal = getCellValue(a, colIndex);
+    let bVal = getCellValue(b, colIndex);
+
+    // Determine if numeric
+    const aNum = parseNumericValue(aVal);
+    const bNum = parseNumericValue(bVal);
+
+    let comparison;
+    if (aNum !== null && bNum !== null) {
+      comparison = aNum - bNum;
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    return newDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // Re-append rows in new order
+  rows.forEach(row => {
+    // Check if row is currently visible (respecting filters)
+    const wasVisible = row.style.display !== 'none';
+    tableWrap.appendChild(row);
+    // Restore visibility if it was hidden by filters
+    if (!wasVisible) row.style.display = 'none';
+  });
+}
+
+function getCellValue(row, colIndex) {
+  const cells = row.querySelectorAll('span, .col-symbol, .col-signal, .col-basis, .col-oi, .col-price, .col-alerts');
+  if (colIndex >= cells.length) return '';
+
+  const cell = cells[colIndex];
+  // Get text content, remove arrows and formatting
+  let text = cell.textContent || cell.innerText || '';
+  text = text.replace(/[▲▼]/g, '').trim();
+  return text;
+}
+
+function parseNumericValue(val) {
+  if (val === null || val === undefined || val === '-' || val === '') return null;
+
+  // Remove currency symbols, commas, spaces
+  let clean = String(val).replace(/[₹, ]/g, '').replace(/\s/g, '');
+
+  // Handle Cr/L/K suffixes
+  if (clean.endsWith('Cr')) {
+    return parseFloat(clean.replace('Cr', '')) * 10000000;
+  }
+  if (clean.endsWith('L')) {
+    return parseFloat(clean.replace('L', '')) * 100000;
+  }
+  if (clean.endsWith('K')) {
+    return parseFloat(clean.replace('K', '')) * 1000;
+  }
+
+  // Handle percentage
+  if (clean.endsWith('%')) {
+    return parseFloat(clean.replace('%', ''));
+  }
+
+  // Try parsing as float
+  const num = parseFloat(clean);
+  return isNaN(num) ? null : num;
 }
 
 // ============================================
